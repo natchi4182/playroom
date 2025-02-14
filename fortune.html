@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>骨筋肉占い - キラリ☆今日の運勢</title>
+  <style>
+    /* 全体設定：メイリオ、Meiryo を使用 */
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: "メイリオ", Meiryo, sans-serif;
+      background: linear-gradient(135deg, #fdeff9, #c1e3f8);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #333;
+    }
+    /* コンテンツコンテナ */
+    .container {
+      background: #fff;
+      border-radius: 15px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+      padding: 30px 25px;
+      max-width: 450px;
+      width: 90%;
+      text-align: center;
+    }
+    h1 {
+      font-size: 2.6em;
+      color: #d81b60;
+      margin-bottom: 5px;
+    }
+    .description {
+      font-size: 1.1em;
+      margin-bottom: 20px;
+      color: #555;
+    }
+    .person {
+      text-align: left;
+      margin-bottom: 20px;
+      padding: 15px;
+      border: 1px solid #f0a1bd;
+      border-radius: 10px;
+      background: #fff0f5;
+    }
+    .person h2 {
+      margin-top: 0;
+      color: #d81b60;
+      font-size: 1.3em;
+    }
+    .person div {
+      margin-bottom: 10px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    select {
+      width: 100%;
+      padding: 8px;
+      font-size: 1em;
+      border: 2px solid #d81b60;
+      border-radius: 8px;
+      outline: none;
+      transition: border 0.3s;
+      background: #fff;
+    }
+    select:focus {
+      border-color: #ad113e;
+    }
+    button {
+      background: #d81b60;
+      color: #fff;
+      border: none;
+      padding: 12px 20px;
+      font-size: 1.2em;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.3s;
+      width: 100%;
+      margin-top: 10px;
+    }
+    button:hover {
+      background: #ad113e;
+    }
+    .result {
+      margin-top: 20px;
+      padding: 20px;
+      background: #fff7f9;
+      border: 2px dashed #d81b60;
+      border-radius: 10px;
+      animation: fadeIn 0.8s ease-in-out;
+      text-align: left;
+    }
+    .result h2, .result h3 {
+      color: #d81b60;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    hr {
+      border: none;
+      border-top: 1px dashed #d81b60;
+      margin: 15px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>骨筋肉占い</h1>
+    <p class="description">
+      1人分または2人分のデータを入力してください。<br>
+      2人目を入力すると相性診断も表示されます。
+    </p>
+    
+    <!-- 1人目の入力欄 -->
+    <div class="person" id="person1">
+      <h2>1人目</h2>
+      <div>
+        <label for="gender1">性別</label>
+        <select id="gender1">
+          <option value="male">男性</option>
+          <option value="female">女性</option>
+          <option value="other">その他</option>
+        </select>
+      </div>
+      <div>
+        <label for="zodiac1">星座</label>
+        <select id="zodiac1">
+          <option value="aries">牡羊座</option>
+          <option value="taurus">牡牛座</option>
+          <option value="gemini">双子座</option>
+          <option value="cancer">蟹座</option>
+          <option value="leo">獅子座</option>
+          <option value="virgo">乙女座</option>
+          <option value="libra">天秤座</option>
+          <option value="scorpio">蠍座</option>
+          <option value="sagittarius">射手座</option>
+          <option value="capricorn">山羊座</option>
+          <option value="aquarius">水瓶座</option>
+          <option value="pisces">魚座</option>
+        </select>
+      </div>
+      <div>
+        <label for="eto1">干支</label>
+        <select id="eto1">
+          <option value="rat">子（ねずみ）</option>
+          <option value="ox">丑（うし）</option>
+          <option value="tiger">寅（とら）</option>
+          <option value="rabbit">卯（うさぎ）</option>
+          <option value="dragon">辰（たつ）</option>
+          <option value="snake">巳（へび）</option>
+          <option value="horse">午（うま）</option>
+          <option value="goat">未（ひつじ）</option>
+          <option value="monkey">申（さる）</option>
+          <option value="rooster">酉（とり）</option>
+          <option value="dog">戌（いぬ）</option>
+          <option value="boar">亥（いのしし）</option>
+        </select>
+      </div>
+    </div>
+    
+    <!-- 2人目の入力欄（任意） -->
+    <div class="person" id="person2">
+      <h2>2人目（任意）</h2>
+      <div>
+        <label for="gender2">性別</label>
+        <select id="gender2">
+          <option value="">選択しない</option>
+          <option value="male">男性</option>
+          <option value="female">女性</option>
+          <option value="other">その他</option>
+        </select>
+      </div>
+      <div>
+        <label for="zodiac2">星座</label>
+        <select id="zodiac2">
+          <option value="">選択しない</option>
+          <option value="aries">牡羊座</option>
+          <option value="taurus">牡牛座</option>
+          <option value="gemini">双子座</option>
+          <option value="cancer">蟹座</option>
+          <option value="leo">獅子座</option>
+          <option value="virgo">乙女座</option>
+          <option value="libra">天秤座</option>
+          <option value="scorpio">蠍座</option>
+          <option value="sagittarius">射手座</option>
+          <option value="capricorn">山羊座</option>
+          <option value="aquarius">水瓶座</option>
+          <option value="pisces">魚座</option>
+        </select>
+      </div>
+      <div>
+        <label for="eto2">干支</label>
+        <select id="eto2">
+          <option value="">選択しない</option>
+          <option value="rat">子（ねずみ）</option>
+          <option value="ox">丑（うし）</option>
+          <option value="tiger">寅（とら）</option>
+          <option value="rabbit">卯（うさぎ）</option>
+          <option value="dragon">辰（たつ）</option>
+          <option value="snake">巳（へび）</option>
+          <option value="horse">午（うま）</option>
+          <option value="goat">未（ひつじ）</option>
+          <option value="monkey">申（さる）</option>
+          <option value="rooster">酉（とり）</option>
+          <option value="dog">戌（いぬ）</option>
+          <option value="boar">亥（いのしし）</option>
+        </select>
+      </div>
+    </div>
+    
+    <button type="button" onclick="fortune()">占う</button>
+    <div class="result" id="result"></div>
+  </div>
+  
+  <script>
+    // 1人分の占い結果を計算するヘルパー関数
+    function computeFortune(gender, zodiac, eto, now) {
+      var year  = now.getFullYear();
+      var month = now.getMonth() + 1;
+      var day   = now.getDate();
+      var hour  = now.getHours();
+      
+      // ユーザー入力を数値に変換
+      var genderValue = (gender === 'male') ? 1 : (gender === 'female') ? 2 : 3;
+      
+      var zodiacValue;
+      switch(zodiac) {
+        case 'aries': zodiacValue = 1; break;
+        case 'taurus': zodiacValue = 2; break;
+        case 'gemini': zodiacValue = 3; break;
+        case 'cancer': zodiacValue = 4; break;
+        case 'leo': zodiacValue = 5; break;
+        case 'virgo': zodiacValue = 6; break;
+        case 'libra': zodiacValue = 7; break;
+        case 'scorpio': zodiacValue = 8; break;
+        case 'sagittarius': zodiacValue = 9; break;
+        case 'capricorn': zodiacValue = 10; break;
+        case 'aquarius': zodiacValue = 11; break;
+        case 'pisces': zodiacValue = 12; break;
+        default: zodiacValue = 0;
+      }
+      
+      var etoValue;
+      switch(eto) {
+        case 'rat': etoValue = 1; break;
+        case 'ox': etoValue = 2; break;
+        case 'tiger': etoValue = 3; break;
+        case 'rabbit': etoValue = 4; break;
+        case 'dragon': etoValue = 5; break;
+        case 'snake': etoValue = 6; break;
+        case 'horse': etoValue = 7; break;
+        case 'goat': etoValue = 8; break;
+        case 'monkey': etoValue = 9; break;
+        case 'rooster': etoValue = 10; break;
+        case 'dog': etoValue = 11; break;
+        case 'boar': etoValue = 12; break;
+        default: etoValue = 0;
+      }
+      
+      // シード値作成（現在の日時と入力値の合算）
+      var seed = year + month + day + hour + genderValue + zodiacValue + etoValue;
+      
+      // 骨・筋肉の候補（各24個）
+      var bones = [
+        "頑丈な大腿骨", "しなやかな脊椎", "強固な鎖骨", "神秘的な肋骨",
+        "しっかりした上腕骨", "華麗な橈骨", "優美な尺骨", "美しい手根骨",
+        "雄大な脛骨", "優雅な腓骨", "神聖な指骨", "古代の寛骨",
+        "輝く頭蓋骨", "柔軟な胸骨", "勇敢な膝蓋骨", "堅牢な下顎骨",
+        "光輝く肩甲骨", "静謐な尾骨", "風格ある頬骨", "洗練されたあぶみ骨",
+        "大地を感じる踵骨", "神々しい鼻骨", "奇跡の距骨", "未来を拓く舌骨"
+      ];
+      var muscles = [
+        "逞しい大胸筋", "引き締まった腹直筋", "力強い大腿四頭筋", "しなやかな上腕二頭筋",
+        "驚異の三角筋", "雄々しい広背筋", "躍動する前鋸筋", "柔軟な大内転筋",
+        "発達した僧帽筋", "鋭敏な腸腰筋", "躍動感あふれる大臀筋", "力強い下腿三頭筋",
+        "繊細な小円筋", "洗練された側頭筋", "勇猛な腕橈骨筋", "静寂な脊柱起立筋",
+        "堅実な上腕三頭筋", "雄大な大腿二頭筋", "飛翔する外腹斜筋", "調和の内腹斜筋",
+        "神秘の前脛骨筋", "芸術的な胸鎖乳突筋", "未来を創る菱形筋", "古典的な肩甲下筋"
+      ];
+      
+      // 選択結果を算出
+      var boneIndex = seed % bones.length;
+      // 筋肉は seed に任意の係数（ここでは7）を乗じた値から算出
+      var muscleIndex = (seed * 7) % muscles.length;
+      var boneResult = bones[boneIndex];
+      var muscleResult = muscles[muscleIndex];
+      
+      // 骨と筋肉が「関連」があるか（キーワードによる判定）
+      var keywords = ["大腿", "上腕", "橈骨", "脛骨", "肩甲", "頭蓋", "胸", "下腿"];
+      var related = false;
+      for (var i = 0; i < keywords.length; i++) {
+        if (boneResult.indexOf(keywords[i]) !== -1 && muscleResult.indexOf(keywords[i]) !== -1) {
+          related = true;
+          break;
+        }
+      }
+      
+      return {
+        bone: boneResult,
+        muscle: muscleResult,
+        related: related,
+        seed: seed
+      };
+    }
+    
+    function fortune() {
+      var now = new Date();
+      // 1人目（必須）の入力取得
+      var gender1 = document.getElementById('gender1').value;
+      var zodiac1 = document.getElementById('zodiac1').value;
+      var eto1 = document.getElementById('eto1').value;
+      var result1 = computeFortune(gender1, zodiac1, eto1, now);
+      
+      // 2人目（任意）の入力取得
+      var gender2 = document.getElementById('gender2').value;
+      var zodiac2 = document.getElementById('zodiac2').value;
+      var eto2 = document.getElementById('eto2').value;
+      // 2人目がすべて選択されていればtrue
+      var hasPerson2 = (gender2 !== "" && zodiac2 !== "" && eto2 !== "");
+      var result2 = null;
+      if (hasPerson2) {
+        result2 = computeFortune(gender2, zodiac2, eto2, now);
+      }
+      
+      // 結果表示用HTML作成
+      var html = "";
+      html += "<h2>占い結果</h2>";
+      html += "<h3>1人目</h3>";
+      html += "<p>あなたの骨は「<strong>" + result1.bone + "</strong>」です。</p>";
+      html += "<p>あなたの筋肉は「<strong>" + result1.muscle + "</strong>」です。</p>";
+      if (result1.related) {
+        html += "<p style='color:#d81b60; font-weight:bold;'>おめでとうございます！</p>";
+      }
+      
+      if (hasPerson2) {
+        html += "<hr>";
+        html += "<h3>2人目</h3>";
+        html += "<p>あなたの骨は「<strong>" + result2.bone + "</strong>」です。</p>";
+        html += "<p>あなたの筋肉は「<strong>" + result2.muscle + "</strong>」です。</p>";
+        if (result2.related) {
+          html += "<p style='color:#d81b60; font-weight:bold;'>おめでとうございます！</p>";
+        }
+        
+        // 相性診断（シードの合算値を元に0～100%を算出）
+        var compScore = (result1.seed + result2.seed) % 101;
+        html += "<hr>";
+        html += "<h3>相性診断</h3>";
+        html += "<p>あなたたちの相性は <strong>" + compScore + "%</strong> です！</p>";
+        if (compScore >= 80) {
+          html += "<p style='color:#d81b60; font-weight:bold;'>おめでとうございます！</p>";
+        }
+      }
+      
+      document.getElementById('result').innerHTML = html;
+    }
+  </script>
+</body>
+</html>
