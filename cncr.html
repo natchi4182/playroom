@@ -2,44 +2,67 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
+  <!-- iPhone向け最適化 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>チンチロリン</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      text-align: center;
       margin: 0;
-      padding: 0;
+      padding: 10px;
+      text-align: center;
+      /* iPhoneの横幅に合わせる */
+      max-width: 480px;
+      margin-left: auto;
+      margin-right: auto;
     }
-    /* 画面（セクション）の表示切替用 */
     .screen { display: none; }
     .active { display: block; }
-
-    /* オーバーレイ（サイコロアニメーション）の設定 */
+    .hidden { display: none; }
+    /* オーバーレイ（サイコロアニメーション） */
     #overlay {
       position: fixed;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
       z-index: 1000;
-      background: rgba(255, 255, 255, 0.9);
+      background: rgba(255, 255, 255, 0.95);
       padding: 20px;
       border: 2px solid #000;
       display: none;
     }
-    /* サイコロ画像 */
     .dice {
-      width: 100px;
-      height: 100px;
-      margin: 10px;
+      width: 80px;
+      height: 80px;
+      margin: 5px;
       display: inline-block;
     }
-    /* ローリングアニメーション */
     .rolling {
       animation: roll 1s ease;
     }
     @keyframes roll {
-      0%   { transform: rotate(0deg); }
+      0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
+    }
+    /* タイトル画面：プレイヤー設定 */
+    #playerNamesContainer input {
+      display: block;
+      margin: 5px auto;
+      width: 90%;
+      padding: 5px;
+      font-size: 16px;
+    }
+    /* スコアボード */
+    #scoreBoard, #suddenDeathScoreBoard {
+      margin-top: 20px;
+      border-top: 1px solid #ccc;
+      padding-top: 10px;
+      text-align: left;
+    }
+    #scoreBoard ul, #suddenDeathScoreBoard ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
     }
   </style>
 </head>
@@ -47,27 +70,39 @@
   <!-- タイトル画面 -->
   <div id="title-screen" class="screen active">
     <h1>チンチロリン</h1>
-    <label for="playerCount">
-      人数: <span id="playerCountDisplay"></span>
-    </label>
+    <div id="playerSettings">
+      <label for="playerCount">人数: <span id="playerCountDisplay"></span></label>
+      <br>
+      <input type="range" id="playerCount" min="1" max="6" value="2">
+      <div id="playerNamesContainer"></div>
+      <button id="clearNamesBtn">クリア</button>
+    </div>
     <br>
-    <input type="range" id="playerCount" min="1" max="6" value="2">
-    <br><br>
     <button id="startGameBtn">ゲーム開始</button>
   </div>
 
-  <!-- ゲーム画面 -->
+  <!-- メインゲーム画面 -->
   <div id="game-screen" class="screen">
     <h2 id="turnIndicator"></h2>
     <div id="rollInfo">残りロール回数: <span id="rollCount">3</span></div>
     <br>
     <button id="rollDiceBtn">サイコロを振る</button>
     <div id="resultDisplay" style="margin-top:20px;"></div>
+    <div id="scoreBoard"></div>
   </div>
 
-  <!-- 結果画面 -->
+  <!-- サドンデス画面 -->
+  <div id="sudden-death-screen" class="screen">
+    <h2>サドンデス</h2>
+    <p id="suddenDeathInstruction"></p>
+    <button id="suddenDeathRollBtn">サイコロを振る (サドンデス)</button>
+    <div id="suddenDeathResultDisplay" style="margin-top:20px;"></div>
+    <div id="suddenDeathScoreBoard"></div>
+  </div>
+
+  <!-- 最終結果画面 -->
   <div id="result-screen" class="screen">
-    <h2>結果</h2>
+    <h2>最終結果</h2>
     <div id="finalResults"></div>
     <br>
     <button id="restartBtn">もう一度</button>
@@ -83,7 +118,7 @@
   </div>
 
   <script>
-    // サイコロ画像（Wikipedia などからのリンク例）
+    // サイコロ画像（例）
     const diceImages = {
       1: "https://upload.wikimedia.org/wikipedia/commons/1/1b/Dice-1-b.svg",
       2: "https://upload.wikimedia.org/wikipedia/commons/5/5f/Dice-2-b.svg",
@@ -93,25 +128,34 @@
       6: "https://upload.wikimedia.org/wikipedia/commons/2/26/Dice-6-b.svg"
     };
 
-    // ゲーム進行用変数
+    // 役の強さ（数値が大きいほど強い）
+    const outcomeRank = { "ゾロ目": 5, "シゴロ": 4, "ポイント": 3, "メナシ": 2, "ヒフミ": 1 };
+
     let numberOfPlayers = 2;
     let currentPlayer = 0;
-    let players = [];  // 各プレイヤーの情報： { rolls, outcome, point, dice }
-    // 役の強さ（順位比較用）
-    const outcomeRank = { "ゾロ目": 5, "シゴロ": 4, "ポイント": 3, "メナシ": 2, "ヒフミ": 1 };
+    let players = []; // 各プレイヤー: { rolls, outcome, point, dice, name }
+
+    // サドンデス用変数
+    let suddenDeathPlayers = []; // players 配列内の該当インデックス群
+    let currentSuddenDeathIndex = 0;
+    let suddenDeathResults = {}; // { playerIndex: { outcome, point, dice } }
 
     document.addEventListener("DOMContentLoaded", function() {
       // 各要素の取得
       const titleScreen = document.getElementById("title-screen");
       const gameScreen = document.getElementById("game-screen");
+      const suddenDeathScreen = document.getElementById("sudden-death-screen");
       const resultScreen = document.getElementById("result-screen");
       const playerCountSlider = document.getElementById("playerCount");
       const playerCountDisplay = document.getElementById("playerCountDisplay");
+      const playerNamesContainer = document.getElementById("playerNamesContainer");
+      const clearNamesBtn = document.getElementById("clearNamesBtn");
       const startGameBtn = document.getElementById("startGameBtn");
       const rollDiceBtn = document.getElementById("rollDiceBtn");
       const turnIndicator = document.getElementById("turnIndicator");
       const rollCountDisplay = document.getElementById("rollCount");
       const resultDisplay = document.getElementById("resultDisplay");
+      const scoreBoard = document.getElementById("scoreBoard");
       const finalResults = document.getElementById("finalResults");
       const restartBtn = document.getElementById("restartBtn");
       const overlay = document.getElementById("overlay");
@@ -120,8 +164,12 @@
         document.getElementById("dice2"),
         document.getElementById("dice3")
       ];
+      const suddenDeathInstruction = document.getElementById("suddenDeathInstruction");
+      const suddenDeathRollBtn = document.getElementById("suddenDeathRollBtn");
+      const suddenDeathResultDisplay = document.getElementById("suddenDeathResultDisplay");
+      const suddenDeathScoreBoard = document.getElementById("suddenDeathScoreBoard");
 
-      // localStorageから人数を読み込み（なければ初期値 2）
+      // localStorageから人数を取得（なければ初期値2）
       if(localStorage.getItem("playerCount")) {
         numberOfPlayers = parseInt(localStorage.getItem("playerCount"));
         playerCountSlider.value = numberOfPlayers;
@@ -130,40 +178,84 @@
       }
       playerCountDisplay.textContent = playerCountSlider.value;
 
-      // スライドバー変更時：表示更新＆localStorage保存
+      // localStorageからプレイヤー名（JSON配列）を取得
+      function loadPlayerNames() {
+        let stored = localStorage.getItem("playerNames");
+        if(stored) {
+          try {
+            return JSON.parse(stored);
+          } catch(e) { return []; }
+        }
+        return [];
+      }
+      let storedPlayerNames = loadPlayerNames();
+
+      // プレイヤー名入力欄更新（人数に応じて生成）
+      function updatePlayerNamesInputs() {
+        playerNamesContainer.innerHTML = "";
+        let count = parseInt(playerCountSlider.value);
+        for(let i = 0; i < count; i++){
+          let input = document.createElement("input");
+          input.type = "text";
+          input.className = "playerNameInput";
+          input.placeholder = "プレイヤー " + (i+1) + " の名前";
+          input.dataset.index = i;
+          if(storedPlayerNames[i]) {
+            input.value = storedPlayerNames[i];
+          }
+          // 入力変更時に localStorage 更新
+          input.addEventListener("input", function() {
+            let idx = parseInt(this.dataset.index);
+            storedPlayerNames[idx] = this.value;
+            localStorage.setItem("playerNames", JSON.stringify(storedPlayerNames));
+          });
+          playerNamesContainer.appendChild(input);
+        }
+      }
+      updatePlayerNamesInputs();
+
+      // スライドバー変更時：表示更新＆localStorage保存、入力欄再生成
       playerCountSlider.addEventListener("input", function() {
         numberOfPlayers = parseInt(this.value);
         playerCountDisplay.textContent = this.value;
         localStorage.setItem("playerCount", this.value);
+        updatePlayerNamesInputs();
+      });
+
+      // クリアボタン：プレイヤー名クリア
+      clearNamesBtn.addEventListener("click", function() {
+        localStorage.removeItem("playerNames");
+        storedPlayerNames = [];
+        updatePlayerNamesInputs();
       });
 
       // ゲーム開始ボタン
       startGameBtn.addEventListener("click", function() {
-        // プレイヤー分の初期化
         players = [];
-        for(let i = 0; i < numberOfPlayers; i++){
-          players.push({ rolls: 0, outcome: null, point: null, dice: [] });
+        let count = parseInt(playerCountSlider.value);
+        const nameInputs = document.querySelectorAll(".playerNameInput");
+        for(let i = 0; i < count; i++){
+          let name = nameInputs[i] && nameInputs[i].value.trim() !== "" ? nameInputs[i].value.trim() : "プレイヤー " + (i+1);
+          players.push({ rolls: 0, outcome: null, point: null, dice: [], name: name });
         }
         currentPlayer = 0;
         resultDisplay.innerHTML = "";
         updateTurnIndicator();
+        updateScoreBoard();
+        rollDiceBtn.disabled = false;
         switchScreen(titleScreen, gameScreen);
       });
 
-      // サイコロを振るボタン
+      // メインゲーム：サイコロを振るボタン
       rollDiceBtn.addEventListener("click", function() {
-        rollDiceBtn.disabled = true; // アニメーション中はボタン無効化
-        // オーバーレイ表示：アニメーション開始
+        rollDiceBtn.disabled = true;
         showOverlay();
-        // 各サイコロにアニメーション用クラスを付与
         diceElems.forEach(elem => {
           elem.src = "";
           elem.classList.add("rolling");
         });
-        // 1秒後に出目を確定
         setTimeout(() => {
           const dice = [rollDie(), rollDie(), rollDie()];
-          // アニメーション終了後、各サイコロ画像を出目に更新
           diceElems.forEach((elem, index) => {
             elem.src = diceImages[dice[index]];
             elem.classList.remove("rolling");
@@ -173,12 +265,31 @@
         }, 1000);
       });
 
-      // 「もう一度」ボタン：結果画面からタイトル画面へ戻る（人数はlocalStorageから保持）
+      // サドンデス用：サイコロを振るボタン
+      suddenDeathRollBtn.addEventListener("click", function() {
+        suddenDeathRollBtn.disabled = true;
+        showOverlay();
+        diceElems.forEach(elem => {
+          elem.src = "";
+          elem.classList.add("rolling");
+        });
+        setTimeout(() => {
+          const dice = [rollDie(), rollDie(), rollDie()];
+          diceElems.forEach((elem, index) => {
+            elem.src = diceImages[dice[index]];
+            elem.classList.remove("rolling");
+          });
+          hideOverlay();
+          processSuddenDeathRoll(dice);
+        }, 1000);
+      });
+
+      // 終了画面の「もう一度」ボタン
       restartBtn.addEventListener("click", function() {
         switchScreen(resultScreen, titleScreen);
       });
 
-      // 画面切替用関数
+      // 画面切替用
       function switchScreen(hideScreen, showScreen) {
         hideScreen.classList.remove("active");
         hideScreen.classList.add("hidden");
@@ -186,9 +297,9 @@
         showScreen.classList.add("active");
       }
 
-      // 現在のプレイヤー情報更新
+      // 現在のプレイヤー表示更新
       function updateTurnIndicator() {
-        turnIndicator.textContent = "プレイヤー " + (currentPlayer + 1) + " の番";
+        turnIndicator.textContent = players[currentPlayer].name + " の番";
         rollCountDisplay.textContent = 3 - players[currentPlayer].rolls;
         resultDisplay.innerHTML = "";
       }
@@ -198,26 +309,24 @@
         return Math.floor(Math.random() * 6) + 1;
       }
 
-      // サイコロの出目を評価し、役があるか判定
+      // メインゲーム：出目評価・処理
       function processRoll(dice) {
         players[currentPlayer].rolls++;
         players[currentPlayer].dice = dice;
         let outcomeObj = evaluateDice(dice);
         if(outcomeObj) {
-          // 役が出た場合（ポイントの場合は点数も保存）
           players[currentPlayer].outcome = outcomeObj.outcome;
           if(outcomeObj.outcome === "ポイント") {
             players[currentPlayer].point = outcomeObj.point;
           }
           resultDisplay.innerHTML = "出目: " + dice.join(", ") + "<br>結果: " + formatOutcome(players[currentPlayer]);
-          // 少し待ってから次のプレイヤーへ
+          updateScoreBoard();
           setTimeout(nextPlayer, 1000);
         } else {
-          // 役が出なかった場合
           if(players[currentPlayer].rolls >= 3) {
-            // 3回目で役が出なければ「メナシ」
             players[currentPlayer].outcome = "メナシ";
             resultDisplay.innerHTML = "出目: " + dice.join(", ") + "<br>結果: メナシ";
+            updateScoreBoard();
             setTimeout(nextPlayer, 1000);
           } else {
             resultDisplay.innerHTML = "出目: " + dice.join(", ") + "<br>役が出ませんでした。もう一度振ってください。";
@@ -227,22 +336,18 @@
         }
       }
 
-      // 出目評価：各種ルールに沿って役を判定する
+      // 出目評価（通常のルール）
       function evaluateDice(dice) {
         let sorted = dice.slice().sort((a, b) => a - b);
-        // 1. 三つそろい → ゾロ目
         if(dice[0] === dice[1] && dice[1] === dice[2]) {
           return { outcome: "ゾロ目" };
         }
-        // 2. 1,2,3 → ヒフミ
         if(sorted[0] === 1 && sorted[1] === 2 && sorted[2] === 3) {
           return { outcome: "ヒフミ" };
         }
-        // 3. 4,5,6 → シゴロ
         if(sorted[0] === 4 && sorted[1] === 5 && sorted[2] === 6) {
           return { outcome: "シゴロ" };
         }
-        // 4. 2つが同じ → ポイント（残り1つが得点）
         for(let i = 0; i < dice.length; i++){
           let count = dice.filter(n => n === dice[i]).length;
           if(count === 2){
@@ -250,7 +355,6 @@
             return { outcome: "ポイント", point: point };
           }
         }
-        // どの役にも該当しない場合
         return null;
       }
 
@@ -258,50 +362,188 @@
       function formatOutcome(player) {
         if(player.outcome === "ポイント") {
           return player.outcome + " (" + player.point + "点)";
-        } else {
-          return player.outcome;
         }
+        return player.outcome;
       }
 
-      // 次のプレイヤーへ進む。全員終了なら結果画面へ
+      // 次のプレイヤーへ進む
       function nextPlayer() {
         currentPlayer++;
-        if(currentPlayer < numberOfPlayers) {
+        if(currentPlayer < players.length) {
           updateTurnIndicator();
+          updateScoreBoard();
           rollDiceBtn.disabled = false;
         } else {
-          showResults();
+          // メインゲーム終了後、結果確定
+          finalizeResults();
         }
       }
 
-      // 結果表示・順位付け
-      function showResults() {
-        // 各プレイヤーの結果を配列にまとめる
-        let results = players.map((player, index) => {
-          return { player: index + 1, outcome: player.outcome, point: player.point || 0, rolls: player.rolls, dice: player.dice };
-        });
-        // 役の強さでソート（同じ「ポイント」の場合は点数で比較）
+      // メインゲーム終了後の結果判定
+      function finalizeResults() {
+        // 各プレイヤーの結果を配列化してソート
+        let results = players.map((p, i) => ({
+          index: i,
+          name: p.name,
+          outcome: p.outcome,
+          point: p.point || 0,
+          rolls: p.rolls,
+          dice: p.dice
+        }));
         results.sort((a, b) => {
-          let rankA = outcomeRank[a.outcome];
-          let rankB = outcomeRank[b.outcome];
-          if(rankA === rankB && a.outcome === "ポイント") {
+          let diff = outcomeRank[b.outcome] - outcomeRank[a.outcome];
+          if(diff === 0 && a.outcome === "ポイント") {
             return b.point - a.point;
+          }
+          return diff;
+        });
+        // 最下位グループの判定
+        let last = results[results.length - 1];
+        let tiedGroup = results.filter(r => {
+          if(r.outcome !== last.outcome) return false;
+          if(r.outcome === "ポイント") {
+            return r.point === last.point;
+          }
+          return true;
+        });
+        if(tiedGroup.length > 1) {
+          // 複数ならサドンデス開始（対象プレイヤーの index を記録）
+          suddenDeathPlayers = tiedGroup.map(r => r.index);
+          startSuddenDeath();
+        } else {
+          showFinalResults(results);
+        }
+      }
+
+      // サドンデス開始
+      function startSuddenDeath() {
+        currentSuddenDeathIndex = 0;
+        suddenDeathResults = {};
+        let names = suddenDeathPlayers.map(idx => players[idx].name).join("、");
+        suddenDeathInstruction.textContent = "最下位タイにつきサドンデス開始！対象: " + names + "。順番にサイコロを振ってください。";
+        updateSuddenDeathScoreBoard();
+        switchScreen(gameScreen, suddenDeathScreen);
+        suddenDeathRollBtn.disabled = false;
+        suddenDeathResultDisplay.innerHTML = "";
+      }
+
+      // サドンデス時のサイコロを振る処理
+      function processSuddenDeathRoll(dice) {
+        // 評価：評価結果が null なら「メナシ」とする
+        let result = evaluateDice(dice);
+        if(!result) { result = { outcome: "メナシ" }; }
+        let playerIdx = suddenDeathPlayers[currentSuddenDeathIndex];
+        suddenDeathResults[playerIdx] = { outcome: result.outcome, point: result.point || 0, dice: dice };
+        suddenDeathResultDisplay.innerHTML += players[playerIdx].name + " の出目: " + dice.join(", ") + " → " + formatOutcome({ outcome: result.outcome, point: result.point }) + "<br>";
+        updateSuddenDeathScoreBoard();
+        currentSuddenDeathIndex++;
+        if(currentSuddenDeathIndex < suddenDeathPlayers.length) {
+          suddenDeathInstruction.textContent = players[suddenDeathPlayers[currentSuddenDeathIndex]].name + " の番です。サイコロを振ってください。";
+          suddenDeathRollBtn.disabled = false;
+        } else {
+          // 全員分の結果が出たので、サドンデスラウンドを評価
+          setTimeout(evaluateSuddenDeathRound, 1000);
+        }
+      }
+
+      // サドンデスのスコアボード更新
+      function updateSuddenDeathScoreBoard() {
+        let html = "<h3>サドンデス結果</h3><ul>";
+        suddenDeathPlayers.forEach(idx => {
+          if(suddenDeathResults[idx]) {
+            let res = suddenDeathResults[idx];
+            html += "<li>" + players[idx].name + " : " + (res.outcome === "ポイント" ? res.outcome + " (" + res.point + "点)" : res.outcome) + "</li>";
           } else {
-            return rankB - rankA;
+            html += "<li>" + players[idx].name + " : 未定</li>";
           }
         });
+        html += "</ul>";
+        suddenDeathScoreBoard.innerHTML = html;
+      }
+
+      // サドンデスラウンドの評価
+      function evaluateSuddenDeathRound() {
+        let results = suddenDeathPlayers.map(idx => {
+          let res = suddenDeathResults[idx];
+          return { index: idx, name: players[idx].name, outcome: res.outcome, point: res.point };
+        });
+        // 最も弱い（数値が低い方）結果を探す
+        let worstRank = Math.min(...results.map(r => outcomeRank[r.outcome]));
+        let candidates = results.filter(r => outcomeRank[r.outcome] === worstRank);
+        // 「ポイント」の場合、さらに点数が低い方を抽出
+        if(candidates.length > 1 && candidates[0].outcome === "ポイント") {
+          let minPoint = Math.min(...candidates.map(r => r.point));
+          candidates = candidates.filter(r => r.point === minPoint);
+        }
+        if(candidates.length === 1) {
+          // 唯一の最下位決定
+          let loserIdx = candidates[0].index;
+          alert("サドンデスの結果、" + players[loserIdx].name + " が最下位となりました。");
+          // 該当プレイヤーの結果にサドンデス負けを付加
+          players[loserIdx].outcome = players[loserIdx].outcome + " (サドンデス負け)";
+          // 最終結果の並び順を再度ソートして表示
+          let finalOrder = players.map((p, i) => ({
+            index: i,
+            name: p.name,
+            outcome: p.outcome,
+            point: p.point || 0,
+            rolls: p.rolls,
+            dice: p.dice
+          }));
+          finalOrder.sort((a, b) => {
+            // サドンデス負けのテキストを除外して比較
+            let aOutcome = a.outcome.replace(" (サドンデス負け)","");
+            let bOutcome = b.outcome.replace(" (サドンデス負け)","");
+            let diff = outcomeRank[bOutcome] - outcomeRank[aOutcome];
+            if(diff === 0 && aOutcome === "ポイント") {
+              return b.point - a.point;
+            }
+            return diff;
+          });
+          showFinalResults(finalOrder);
+        } else {
+          // 複数の場合は再度サドンデスラウンド
+          suddenDeathPlayers = candidates.map(c => c.index);
+          currentSuddenDeathIndex = 0;
+          suddenDeathResults = {};
+          let names = suddenDeathPlayers.map(idx => players[idx].name).join("、");
+          suddenDeathInstruction.textContent = "再度サドンデス開始: " + names + "。順番にサイコロを振ってください。";
+          suddenDeathResultDisplay.innerHTML += "<br>サドンデスラウンド再挑戦！<br>";
+          updateSuddenDeathScoreBoard();
+          suddenDeathRollBtn.disabled = false;
+        }
+      }
+
+      // メインゲーム：スコアボード更新
+      function updateScoreBoard() {
+        let html = "<h3>プレイヤー結果</h3><ul>";
+        players.forEach((p, i) => {
+          html += "<li>" + p.name + " : ";
+          if(p.outcome) {
+            html += (p.outcome === "ポイント" ? p.outcome + " (" + p.point + "点)" : p.outcome) + " (ロール回数: " + p.rolls + ")";
+          } else {
+            html += "未定";
+          }
+          html += "</li>";
+        });
+        html += "</ul>";
+        scoreBoard.innerHTML = html;
+      }
+
+      // 最終結果画面表示
+      function showFinalResults(results) {
         let html = "<ol>";
         results.forEach(res => {
-          html += "<li>プレイヤー " + res.player + " : " + 
-                  (res.outcome === "ポイント" ? res.outcome + " (" + res.point + "点)" : res.outcome) +
-                  " (ロール回数: " + res.rolls + ")</li>";
+          html += "<li>" + players[res.index].name + " : " +
+                  players[res.index].outcome +
+                  " (ロール回数: " + players[res.index].rolls + ")</li>";
         });
         html += "</ol>";
         finalResults.innerHTML = html;
-        switchScreen(gameScreen, resultScreen);
+        switchScreen(suddenDeathScreen, resultScreen);
       }
 
-      // オーバーレイ表示／非表示関数
+      // オーバーレイの表示／非表示
       function showOverlay() {
         overlay.style.display = "block";
       }
