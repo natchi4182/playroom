@@ -415,7 +415,7 @@
       userData.partnerGender = gender;
       if (gender === 'unnecessary') {
         // 相手占い不要の場合はスキップして結果表示へ
-        showStep('step7');
+        showResult();
       } else {
         showStep('step5');
       }
@@ -430,7 +430,7 @@
     // ステップ6：相手の星座選択
     function selectPartnerZodiac(zodiac) {
       userData.partnerZodiac = zodiac;
-      showStep('step7');
+      showResult();
     }
 
     // 占い結果の計算（共通関数）
