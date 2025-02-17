@@ -515,15 +515,15 @@
       if(score === 1) return "絶望的";
       if(score === 10) return "絶好調";
       if(score <= 3) return "かなり低調";
-      if(score <= 5) return "やや低め";
-      if(score <= 7) return "普通～まずまず";
+      if(score <= 5) return "平凡な日";
+      if(score <= 7) return "まずまずかな";
       if(score <= 9) return "好調";
       return "？";
     }
     function compComment(percent) {
       if(percent < 20) return "かなり厳しい…";
       if(percent < 40) return "う～んイマイチ";
-      if(percent < 60) return "まずまず";
+      if(percent < 60) return "努力次第";
       if(percent < 80) return "なかなか好相性！";
       return "運命的な相性です！";
     }
@@ -581,10 +581,10 @@
       var selfMuscleIndex = muscles.indexOf(userData.selfFortune.muscle);
       var selfLuck = computeLuck(selfBoneIndex, selfMuscleIndex);
       var selfLuckText = luckComment(selfLuck);
-      var resultHTML = "<h3>あなたの結果</h3>";
-      resultHTML += "<p>骨: <strong>" + userData.selfFortune.bone + "</strong><br>";
-      resultHTML += "筋肉: <strong>" + userData.selfFortune.muscle + "</strong><br>";
-      resultHTML += "運気スコア: <span class='score'>" + selfLuck + "</span> (" + selfLuckText + ")</p>";
+      var resultHTML = "<h3>あなたの占い結果</h3>";
+      resultHTML += "<p>筋肉: <strong>" + userData.selfFortune.muscle + "</strong><br>";
+      resultHTML += "骨: <strong>" + userData.selfFortune.bone + "</strong><br>";
+      resultHTML += "運気: <span class='score'>" + selfLuck + "</span> (" + selfLuckText + ")</p>";
 
       // 相手が占い希望の場合
       if(userData.partnerGender !== "unnecessary" && userData.partnerGender !== null) {
@@ -593,13 +593,13 @@
         var partnerMuscleIndex = muscles.indexOf(userData.partnerFortune.muscle);
         var partnerLuck = computeLuck(partnerBoneIndex, partnerMuscleIndex);
         var partnerLuckText = luckComment(partnerLuck);
-        resultHTML += "<hr><h3>相手の結果</h3>";
-        resultHTML += "<p>骨: <strong>" + userData.partnerFortune.bone + "</strong><br>";
-        resultHTML += "筋肉: <strong>" + userData.partnerFortune.muscle + "</strong><br>";
-        resultHTML += "運気スコア: <span class='score'>" + partnerLuck + "</span> (" + partnerLuckText + ")</p>";
+        resultHTML += "<hr><h3>お相手の占い結果</h3>";
+        resultHTML += "<p>筋肉: <strong>" + userData.partnerFortune.muscle + "</strong><br>";
+        resultHTML += "骨: <strong>" + userData.partnerFortune.bone + "</strong><br>";
+        resultHTML += "運気: <span class='score'>" + partnerLuck + "</span> (" + partnerLuckText + ")</p>";
         var compScore = computeCompatibility(selfBoneIndex, selfMuscleIndex, partnerBoneIndex, partnerMuscleIndex);
         var compText = compComment(compScore);
-        resultHTML += "<hr><h3>相性診断結果</h3>";
+        resultHTML += "<hr><h3>ふたりの相性は</h3>";
         resultHTML += "<p>相性: <span class='score'>" + compScore + "%</span><br>(" + compText + ")</p>";
       }
       document.getElementById("resultContent").innerHTML = resultHTML;
