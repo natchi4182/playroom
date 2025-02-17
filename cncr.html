@@ -118,7 +118,7 @@
   </div>
 
   <script>
-    // サイコロ画像（例）
+    // サイコロ画像（ご用意の画像パスに合わせて修正してください）
     const diceImages = {
       1: "img/dice1.png",
       2: "img/dice2.png",
@@ -244,31 +244,27 @@
         updateScoreBoard();
         rollDiceBtn.disabled = false;
         switchScreen(titleScreen, gameScreen);
+        console.log("ゲーム開始：", players);
       });
 
       // メインゲーム：サイコロを振るボタン
-      document.getElementById("rollDiceBtn").addEventListener("click", function() {
-        // ボタンを無効化、オーバーレイ表示
+      rollDiceBtn.addEventListener("click", function() {
+        console.log("サイコロ振るボタン押下");
         this.disabled = true;
         overlay.style.display = "block";
-        // 画像にアニメーション用のクラスを付与
         diceElems.forEach(elem => {
           elem.src = "";
           elem.classList.add("rolling");
         });
         setTimeout(() => {
-          // 1秒後に乱数で出目を決定
           const dice = [rollDie(), rollDie(), rollDie()];
           diceElems.forEach((elem, index) => {
-            // 画像ソースをローカルのサイコロ画像に切り替え
             elem.src = diceImages[dice[index]];
             elem.classList.remove("rolling");
           });
           overlay.style.display = "none";
-          // ここで出目の結果処理などを行います
           console.log("出目:", dice);
-          // 例：ボタンを再度有効にする
-          document.getElementById("rollDiceBtn").disabled = false;
+          processRoll(dice);
         }, 1000);
       });
 
@@ -328,12 +324,14 @@
           }
           resultDisplay.innerHTML = "出目: " + dice.join(", ") + "<br>結果: " + formatOutcome(players[currentPlayer]);
           updateScoreBoard();
+          console.log("結果確定:", players[currentPlayer]);
           setTimeout(nextPlayer, 1000);
         } else {
           if(players[currentPlayer].rolls >= 3) {
             players[currentPlayer].outcome = "メナシ";
             resultDisplay.innerHTML = "出目: " + dice.join(", ") + "<br>結果: メナシ";
             updateScoreBoard();
+            console.log("結果：メナシ");
             setTimeout(nextPlayer, 1000);
           } else {
             resultDisplay.innerHTML = "出目: " + dice.join(", ") + "<br>役が出ませんでした。もう一度振ってください。";
@@ -388,7 +386,6 @@
 
       // メインゲーム終了後の結果判定
       function finalizeResults() {
-        // 各プレイヤーの結果を配列化してソート
         let results = players.map((p, i) => ({
           index: i,
           name: p.name,
@@ -404,7 +401,6 @@
           }
           return diff;
         });
-        // 最下位グループの判定
         let last = results[results.length - 1];
         let tiedGroup = results.filter(r => {
           if(r.outcome !== last.outcome) return false;
@@ -414,7 +410,6 @@
           return true;
         });
         if(tiedGroup.length > 1) {
-          // 複数ならサドンデス開始（対象プレイヤーの index を記録）
           suddenDeathPlayers = tiedGroup.map(r => r.index);
           startSuddenDeath();
         } else {
@@ -436,7 +431,6 @@
 
       // サドンデス時のサイコロを振る処理
       function processSuddenDeathRoll(dice) {
-        // 評価：評価結果が null なら「メナシ」とする
         let result = evaluateDice(dice);
         if(!result) { result = { outcome: "メナシ" }; }
         let playerIdx = suddenDeathPlayers[currentSuddenDeathIndex];
@@ -448,7 +442,6 @@
           suddenDeathInstruction.textContent = players[suddenDeathPlayers[currentSuddenDeathIndex]].name + " の番です。サイコロを振ってください。";
           suddenDeathRollBtn.disabled = false;
         } else {
-          // 全員分の結果が出たので、サドンデスラウンドを評価
           setTimeout(evaluateSuddenDeathRound, 1000);
         }
       }
@@ -474,21 +467,16 @@
           let res = suddenDeathResults[idx];
           return { index: idx, name: players[idx].name, outcome: res.outcome, point: res.point };
         });
-        // 最も弱い（数値が低い方）結果を探す
         let worstRank = Math.min(...results.map(r => outcomeRank[r.outcome]));
         let candidates = results.filter(r => outcomeRank[r.outcome] === worstRank);
-        // 「ポイント」の場合、さらに点数が低い方を抽出
         if(candidates.length > 1 && candidates[0].outcome === "ポイント") {
           let minPoint = Math.min(...candidates.map(r => r.point));
           candidates = candidates.filter(r => r.point === minPoint);
         }
         if(candidates.length === 1) {
-          // 唯一の最下位決定
           let loserIdx = candidates[0].index;
           alert("サドンデスの結果、" + players[loserIdx].name + " が最下位となりました。");
-          // 該当プレイヤーの結果にサドンデス負けを付加
           players[loserIdx].outcome = players[loserIdx].outcome + " (サドンデス負け)";
-          // 最終結果の並び順を再度ソートして表示
           let finalOrder = players.map((p, i) => ({
             index: i,
             name: p.name,
@@ -498,7 +486,6 @@
             dice: p.dice
           }));
           finalOrder.sort((a, b) => {
-            // サドンデス負けのテキストを除外して比較
             let aOutcome = a.outcome.replace(" (サドンデス負け)","");
             let bOutcome = b.outcome.replace(" (サドンデス負け)","");
             let diff = outcomeRank[bOutcome] - outcomeRank[aOutcome];
@@ -509,7 +496,6 @@
           });
           showFinalResults(finalOrder);
         } else {
-          // 複数の場合は再度サドンデスラウンド
           suddenDeathPlayers = candidates.map(c => c.index);
           currentSuddenDeathIndex = 0;
           suddenDeathResults = {};
@@ -547,7 +533,8 @@
         });
         html += "</ol>";
         finalResults.innerHTML = html;
-        switchScreen(suddenDeathScreen, resultScreen);
+        // ★ここを修正：ゲーム画面から結果画面に切り替える
+        switchScreen(gameScreen, resultScreen);
       }
 
       // オーバーレイの表示／非表示
