@@ -354,14 +354,14 @@
     <!-- ステップ7：占い結果表示 -->
     <div id="step7" class="step">
       <h2>占い結果</h2>
-      <div id="resultContent"></div>
+      <div id="showResult"></div>
       <div id="resultButtons"></div>
     </div>
 
     <!-- ステップ8：相性診断結果 -->
     <div id="step8" class="step">
       <h2>相性診断結果</h2>
-      <div id="compatibilityResult"></div>
+      <div id="showCompatibility"></div>
       <button onclick="finish()">終了</button>
     </div>
   </div>
@@ -415,7 +415,7 @@
       userData.partnerGender = gender;
       if (gender === 'unnecessary') {
         // 相手占い不要の場合はスキップして結果表示へ
-        showResult();
+        showStep('step7');
       } else {
         showStep('step5');
       }
@@ -430,7 +430,7 @@
     // ステップ6：相手の星座選択
     function selectPartnerZodiac(zodiac) {
       userData.partnerZodiac = zodiac;
-      showResult();
+      showStep('step7');
     }
 
     // 占い結果の計算（共通関数）
