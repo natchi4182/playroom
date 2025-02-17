@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <!-- モバイル表示に最適化 -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>骨筋肉占い - キラリ☆今日の運勢</title>
+  <title>筋骨占い - キラリ☆今日の運勢</title>
   <style>
     /* 全体：メイリオ・Meiryo を使用 */
     body {
@@ -31,8 +31,21 @@
     }
     /* 各ステップは初期は非表示 */
     .step { display: none; }
-    /* タイトル */
-    h1 { margin-bottom: 15px; color: #d81b60; }
+    /* タイトルコンテナ */
+    .title-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 15px;
+    }
+    .title-container h1 {
+      margin: 0 15px;
+      font-size: 2em;
+      color: #d81b60;
+    }
+    .title-icon {
+      max-width: 80px;
+    }
     h2 { margin-bottom: 15px; color: #d81b60; }
     /* オプション選択（イラスト） */
     .options {
@@ -87,8 +100,12 @@
   <div class="container">
     <!-- ステップ1：自分の性別を選択 -->
     <div id="step1" class="step">
-      <!-- タイトル -->
-      <h1>骨筋肉占い</h1>
+      <!-- タイトル部分：左右に骨と筋肉のイラスト -->
+      <div class="title-container">
+        <img src="img/muscle.png" alt="Muscle" class="title-icon">
+        <h1>筋骨占い</h1>
+        <img src="img/bone.png" alt="Bone" class="title-icon">
+      </div>
       <h2>自分の性別を選んでください</h2>
       <div class="options">
         <div class="option" onclick="selectGender('female')">
@@ -110,7 +127,6 @@
     <div id="step2" class="step">
       <h2>自分の干支を選んでください</h2>
       <div class="options">
-        <!-- 以下、各干支のイラスト（srcは適宜置き換えてください） -->
         <div class="option" onclick="selectUserEto('rat')">
           <img src="img/rat.png" alt="子">
           <span>子</span>
@@ -355,7 +371,7 @@
       <button onclick="backStep('step5')">戻る</button>
     </div>
 
-    <!-- ステップ7：占い結果表示 -->
+    <!-- ステップ7：占い結果表示（相性診断も同時に表示） -->
     <div id="step7" class="step">
       <h2>占い結果</h2>
       <div id="resultContent"></div>
@@ -507,7 +523,7 @@
       return { bone: boneResult, muscle: muscleResult, related: related, seed: seed };
     }
 
-    // ステップ7：結果表示画面（相性診断も同時表示）
+    // ステップ7：結果表示画面（相性診断も同時に表示）
     function showResults() {
       var now = new Date();
       // 自分の占い結果を計算
@@ -519,7 +535,7 @@
         html += "<p style='color:#d81b60; font-weight:bold;'>おめでとうございます！</p>";
       }
       
-      // パートナー入力があれば結果も表示＆相性診断結果を表示
+      // パートナー入力がある場合は結果と相性診断結果を表示
       if (userData.partnerGender !== "unnecessary" && userData.partnerGender !== null) {
         userData.partnerFortune = computeFortune(userData.partnerGender, userData.partnerZodiac, userData.partnerEto, now);
         html += "<hr><h3>相手の結果</h3>";
@@ -528,7 +544,7 @@
         if (userData.partnerFortune.related) {
           html += "<p style='color:#d81b60; font-weight:bold;'>おめでとうございます！</p>";
         }
-        // 相性診断結果の表示
+        // 相性診断結果の計算と表示
         var compScore = (userData.userFortune.seed + userData.partnerFortune.seed) % 101;
         html += "<hr><h3>相性診断結果</h3>";
         html += "<p>あなたたちの相性は <strong>" + compScore + "%</strong> です！</p>";
