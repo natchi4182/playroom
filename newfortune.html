@@ -32,6 +32,7 @@
     /* 各ステップは初期は非表示 */
     .step { display: none; }
     /* タイトル */
+    h1 { margin-bottom: 15px; color: #d81b60; }
     h2 { margin-bottom: 15px; color: #d81b60; }
     /* オプション選択（イラスト） */
     .options {
@@ -86,6 +87,8 @@
   <div class="container">
     <!-- ステップ1：自分の性別を選択 -->
     <div id="step1" class="step">
+      <!-- ここでタイトル表示 -->
+      <h1>骨筋肉占い</h1>
       <h2>自分の性別を選んでください</h2>
       <div class="options">
         <div class="option" onclick="selectGender('female')">
@@ -239,7 +242,7 @@
       <button onclick="backStep('step3')">戻る</button>
     </div>
 
-    <!-- ステップ5：相手の干支を選択（パートナーが不要でなければ） -->
+    <!-- ステップ5：相手の干支選択 -->
     <div id="step5" class="step">
       <h2>相手の干支を選んでください</h2>
       <div class="options">
@@ -295,7 +298,7 @@
       <button onclick="backStep('step4')">戻る</button>
     </div>
 
-    <!-- ステップ6：相手の星座を選択 -->
+    <!-- ステップ6：相手の星座選択 -->
     <div id="step6" class="step">
       <h2>相手の星座を選んでください</h2>
       <div class="options">
@@ -354,14 +357,14 @@
     <!-- ステップ7：占い結果表示 -->
     <div id="step7" class="step">
       <h2>占い結果</h2>
-      <div id="resultContent">showResult();</div>
+      <div id="resultContent"></div>
       <div id="resultButtons"></div>
     </div>
 
     <!-- ステップ8：相性診断結果 -->
     <div id="step8" class="step">
       <h2>相性診断結果</h2>
-      <div id="compatibilityResult">showCompatibility();</div>
+      <div id="compatibilityResult"></div>
       <button onclick="finish()">終了</button>
     </div>
   </div>
@@ -414,8 +417,8 @@
     function selectPartnerGender(gender) {
       userData.partnerGender = gender;
       if (gender === 'unnecessary') {
-        // 相手占い不要の場合はスキップして結果表示へ
-        showStep('step7');
+        // 相手占い不要の場合は結果表示へ
+        showResults();
       } else {
         showStep('step5');
       }
@@ -430,7 +433,7 @@
     // ステップ6：相手の星座選択
     function selectPartnerZodiac(zodiac) {
       userData.partnerZodiac = zodiac;
-      showStep('step7');
+      showResults();
     }
 
     // 占い結果の計算（共通関数）
