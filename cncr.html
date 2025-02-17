@@ -7,7 +7,7 @@
   <title>チンチロリン</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
+      font-family: "メイリオ", meiryo, Arial, sans-serif;
       margin: 0;
       padding: 10px;
       text-align: center;
@@ -120,12 +120,12 @@
   <script>
     // サイコロ画像（例）
     const diceImages = {
-      1: "https://upload.wikimedia.org/wikipedia/commons/1/1b/Dice-1-b.svg",
-      2: "https://upload.wikimedia.org/wikipedia/commons/5/5f/Dice-2-b.svg",
-      3: "https://upload.wikimedia.org/wikipedia/commons/b/b1/Dice-3-b.svg",
-      4: "https://upload.wikimedia.org/wikipedia/commons/f/fd/Dice-4-b.svg",
-      5: "https://upload.wikimedia.org/wikipedia/commons/0/08/Dice-5-b.svg",
-      6: "https://upload.wikimedia.org/wikipedia/commons/2/26/Dice-6-b.svg"
+      1: "img/dice1.png",
+      2: "img/dice2.png",
+      3: "img/dice3.png",
+      4: "img/dice4.png",
+      5: "img/dice5.png",
+      6: "img/dice6.png"
     };
 
     // 役の強さ（数値が大きいほど強い）
@@ -247,21 +247,28 @@
       });
 
       // メインゲーム：サイコロを振るボタン
-      rollDiceBtn.addEventListener("click", function() {
-        rollDiceBtn.disabled = true;
-        showOverlay();
+      document.getElementById("rollDiceBtn").addEventListener("click", function() {
+        // ボタンを無効化、オーバーレイ表示
+        this.disabled = true;
+        overlay.style.display = "block";
+        // 画像にアニメーション用のクラスを付与
         diceElems.forEach(elem => {
           elem.src = "";
           elem.classList.add("rolling");
         });
         setTimeout(() => {
+          // 1秒後に乱数で出目を決定
           const dice = [rollDie(), rollDie(), rollDie()];
           diceElems.forEach((elem, index) => {
+            // 画像ソースをローカルのサイコロ画像に切り替え
             elem.src = diceImages[dice[index]];
             elem.classList.remove("rolling");
           });
-          hideOverlay();
-          processRoll(dice);
+          overlay.style.display = "none";
+          // ここで出目の結果処理などを行います
+          console.log("出目:", dice);
+          // 例：ボタンを再度有効にする
+          document.getElementById("rollDiceBtn").disabled = false;
         }, 1000);
       });
 
