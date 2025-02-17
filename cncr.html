@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>チンチロリン</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+    }
+    /* 画面（セクション）の表示切替用 */
+    .screen { display: none; }
+    .active { display: block; }
+
+    /* オーバーレイ（サイコロアニメーション）の設定 */
+    #overlay {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 1000;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 20px;
+      border: 2px solid #000;
+      display: none;
+    }
+    /* サイコロ画像 */
+    .dice {
+      width: 100px;
+      height: 100px;
+      margin: 10px;
+      display: inline-block;
+    }
+    /* ローリングアニメーション */
+    .rolling {
+      animation: roll 1s ease;
+    }
+    @keyframes roll {
+      0%   { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <!-- タイトル画面 -->
+  <div id="title-screen" class="screen active">
+    <h1>チンチロリン</h1>
+    <label for="playerCount">
+      人数: <span id="playerCountDisplay"></span>
+    </label>
+    <br>
+    <input type="range" id="playerCount" min="1" max="6" value="2">
+    <br><br>
+    <button id="startGameBtn">ゲーム開始</button>
+  </div>
+
+  <!-- ゲーム画面 -->
+  <div id="game-screen" class="screen">
+    <h2 id="turnIndicator"></h2>
+    <div id="rollInfo">残りロール回数: <span id="rollCount">3</span></div>
+    <br>
+    <button id="rollDiceBtn">サイコロを振る</button>
+    <div id="resultDisplay" style="margin-top:20px;"></div>
+  </div>
+
+  <!-- 結果画面 -->
+  <div id="result-screen" class="screen">
+    <h2>結果</h2>
+    <div id="finalResults"></div>
+    <br>
+    <button id="restartBtn">もう一度</button>
+  </div>
+
+  <!-- サイコロアニメーション用オーバーレイ -->
+  <div id="overlay">
+    <div id="diceContainer">
+      <img id="dice1" class="dice" src="">
+      <img id="dice2" class="dice" src="">
+      <img id="dice3" class="dice" src="">
+    </div>
+  </div>
+
+  <script>
+    // サイコロ画像（Wikipedia などからのリンク例）
+    const diceImages = {
+      1: "https://upload.wikimedia.org/wikipedia/commons/1/1b/Dice-1-b.svg",
+      2: "https://upload.wikimedia.org/wikipedia/commons/5/5f/Dice-2-b.svg",
+      3: "https://upload.wikimedia.org/wikipedia/commons/b/b1/Dice-3-b.svg",
+      4: "https://upload.wikimedia.org/wikipedia/commons/f/fd/Dice-4-b.svg",
+      5: "https://upload.wikimedia.org/wikipedia/commons/0/08/Dice-5-b.svg",
+      6: "https://upload.wikimedia.org/wikipedia/commons/2/26/Dice-6-b.svg"
+    };
+
+    // ゲーム進行用変数
+    let numberOfPlayers = 2;
+    let currentPlayer = 0;
+    let players = [];  // 各プレイヤーの情報： { rolls, outcome, point, dice }
+    // 役の強さ（順位比較用）
+    const outcomeRank = { "ゾロ目": 5, "シゴロ": 4, "ポイント": 3, "メナシ": 2, "ヒフミ": 1 };
+
+    document.addEventListener("DOMContentLoaded", function() {
+      // 各要素の取得
+      const titleScreen = document.getElementById("title-screen");
+      const gameScreen = document.getElementById("game-screen");
+      const resultScreen = document.getElementById("result-screen");
+      const playerCountSlider = document.getElementById("playerCount");
+      const playerCountDisplay = document.getElementById("playerCountDisplay");
+      const startGameBtn = document.getElementById("startGameBtn");
+      const rollDiceBtn = document.getElementById("rollDiceBtn");
+      const turnIndicator = document.getElementById("turnIndicator");
+      const rollCountDisplay = document.getElementById("rollCount");
+      const resultDisplay = document.getElementById("resultDisplay");
+      const finalResults = document.getElementById("finalResults");
+      const restartBtn = document.getElementById("restartBtn");
+      const overlay = document.getElementById("overlay");
+      const diceElems = [
+        document.getElementById("dice1"),
+        document.getElementById("dice2"),
+        document.getElementById("dice3")
+      ];
+
+      // localStorageから人数を読み込み（なければ初期値 2）
+      if(localStorage.getItem("playerCount")) {
+        numberOfPlayers = parseInt(localStorage.getItem("playerCount"));
+        playerCountSlider.value = numberOfPlayers;
+      } else {
+        localStorage.setItem("playerCount", numberOfPlayers);
+      }
+      playerCountDisplay.textContent = playerCountSlider.value;
+
+      // スライドバー変更時：表示更新＆localStorage保存
+      playerCountSlider.addEventListener("input", function() {
+        numberOfPlayers = parseInt(this.value);
+        playerCountDisplay.textContent = this.value;
+        localStorage.setItem("playerCount", this.value);
+      });
+
+      // ゲーム開始ボタン
+      startGameBtn.addEventListener("click", function() {
+        // プレイヤー分の初期化
+        players = [];
+        for(let i = 0; i < numberOfPlayers; i++){
+          players.push({ rolls: 0, outcome: null, point: null, dice: [] });
+        }
+        currentPlayer = 0;
+        resultDisplay.innerHTML = "";
+        updateTurnIndicator();
+        switchScreen(titleScreen, gameScreen);
+      });
+
+      // サイコロを振るボタン
+      rollDiceBtn.addEventListener("click", function() {
+        rollDiceBtn.disabled = true; // アニメーション中はボタン無効化
+        // オーバーレイ表示：アニメーション開始
+        showOverlay();
+        // 各サイコロにアニメーション用クラスを付与
+        diceElems.forEach(elem => {
+          elem.src = "";
+          elem.classList.add("rolling");
+        });
+        // 1秒後に出目を確定
+        setTimeout(() => {
+          const dice = [rollDie(), rollDie(), rollDie()];
+          // アニメーション終了後、各サイコロ画像を出目に更新
+          diceElems.forEach((elem, index) => {
+            elem.src = diceImages[dice[index]];
+            elem.classList.remove("rolling");
+          });
+          hideOverlay();
+          processRoll(dice);
+        }, 1000);
+      });
+
+      // 「もう一度」ボタン：結果画面からタイトル画面へ戻る（人数はlocalStorageから保持）
+      restartBtn.addEventListener("click", function() {
+        switchScreen(resultScreen, titleScreen);
+      });
+
+      // 画面切替用関数
+      function switchScreen(hideScreen, showScreen) {
+        hideScreen.classList.remove("active");
+        hideScreen.classList.add("hidden");
+        showScreen.classList.remove("hidden");
+        showScreen.classList.add("active");
+      }
+
+      // 現在のプレイヤー情報更新
+      function updateTurnIndicator() {
+        turnIndicator.textContent = "プレイヤー " + (currentPlayer + 1) + " の番";
+        rollCountDisplay.textContent = 3 - players[currentPlayer].rolls;
+        resultDisplay.innerHTML = "";
+      }
+
+      // 1個のサイコロを振る
+      function rollDie() {
+        return Math.floor(Math.random() * 6) + 1;
+      }
+
+      // サイコロの出目を評価し、役があるか判定
+      function processRoll(dice) {
+        players[currentPlayer].rolls++;
+        players[currentPlayer].dice = dice;
+        let outcomeObj = evaluateDice(dice);
+        if(outcomeObj) {
+          // 役が出た場合（ポイントの場合は点数も保存）
+          players[currentPlayer].outcome = outcomeObj.outcome;
+          if(outcomeObj.outcome === "ポイント") {
+            players[currentPlayer].point = outcomeObj.point;
+          }
+          resultDisplay.innerHTML = "出目: " + dice.join(", ") + "<br>結果: " + formatOutcome(players[currentPlayer]);
+          // 少し待ってから次のプレイヤーへ
+          setTimeout(nextPlayer, 1000);
+        } else {
+          // 役が出なかった場合
+          if(players[currentPlayer].rolls >= 3) {
+            // 3回目で役が出なければ「メナシ」
+            players[currentPlayer].outcome = "メナシ";
+            resultDisplay.innerHTML = "出目: " + dice.join(", ") + "<br>結果: メナシ";
+            setTimeout(nextPlayer, 1000);
+          } else {
+            resultDisplay.innerHTML = "出目: " + dice.join(", ") + "<br>役が出ませんでした。もう一度振ってください。";
+            rollCountDisplay.textContent = 3 - players[currentPlayer].rolls;
+            rollDiceBtn.disabled = false;
+          }
+        }
+      }
+
+      // 出目評価：各種ルールに沿って役を判定する
+      function evaluateDice(dice) {
+        let sorted = dice.slice().sort((a, b) => a - b);
+        // 1. 三つそろい → ゾロ目
+        if(dice[0] === dice[1] && dice[1] === dice[2]) {
+          return { outcome: "ゾロ目" };
+        }
+        // 2. 1,2,3 → ヒフミ
+        if(sorted[0] === 1 && sorted[1] === 2 && sorted[2] === 3) {
+          return { outcome: "ヒフミ" };
+        }
+        // 3. 4,5,6 → シゴロ
+        if(sorted[0] === 4 && sorted[1] === 5 && sorted[2] === 6) {
+          return { outcome: "シゴロ" };
+        }
+        // 4. 2つが同じ → ポイント（残り1つが得点）
+        for(let i = 0; i < dice.length; i++){
+          let count = dice.filter(n => n === dice[i]).length;
+          if(count === 2){
+            let point = dice.find(n => n !== dice[i]);
+            return { outcome: "ポイント", point: point };
+          }
+        }
+        // どの役にも該当しない場合
+        return null;
+      }
+
+      // 結果文字列の整形
+      function formatOutcome(player) {
+        if(player.outcome === "ポイント") {
+          return player.outcome + " (" + player.point + "点)";
+        } else {
+          return player.outcome;
+        }
+      }
+
+      // 次のプレイヤーへ進む。全員終了なら結果画面へ
+      function nextPlayer() {
+        currentPlayer++;
+        if(currentPlayer < numberOfPlayers) {
+          updateTurnIndicator();
+          rollDiceBtn.disabled = false;
+        } else {
+          showResults();
+        }
+      }
+
+      // 結果表示・順位付け
+      function showResults() {
+        // 各プレイヤーの結果を配列にまとめる
+        let results = players.map((player, index) => {
+          return { player: index + 1, outcome: player.outcome, point: player.point || 0, rolls: player.rolls, dice: player.dice };
+        });
+        // 役の強さでソート（同じ「ポイント」の場合は点数で比較）
+        results.sort((a, b) => {
+          let rankA = outcomeRank[a.outcome];
+          let rankB = outcomeRank[b.outcome];
+          if(rankA === rankB && a.outcome === "ポイント") {
+            return b.point - a.point;
+          } else {
+            return rankB - rankA;
+          }
+        });
+        let html = "<ol>";
+        results.forEach(res => {
+          html += "<li>プレイヤー " + res.player + " : " + 
+                  (res.outcome === "ポイント" ? res.outcome + " (" + res.point + "点)" : res.outcome) +
+                  " (ロール回数: " + res.rolls + ")</li>";
+        });
+        html += "</ol>";
+        finalResults.innerHTML = html;
+        switchScreen(gameScreen, resultScreen);
+      }
+
+      // オーバーレイ表示／非表示関数
+      function showOverlay() {
+        overlay.style.display = "block";
+      }
+      function hideOverlay() {
+        overlay.style.display = "none";
+      }
+    });
+  </script>
+</body>
+</html>
