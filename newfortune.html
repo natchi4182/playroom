@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <!-- モバイル表示に最適化 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>筋骨占い - キラリ☆今日の運勢</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: "メイリオ", Meiryo, sans-serif;
+      background: linear-gradient(135deg, #fdeff9, #c1e3f8);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #333;
+    }
+    .container {
+      background: #fff;
+      border-radius: 15px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      padding: 20px 15px;
+      width: 95%;
+      max-width: 600px;
+      margin: 10px;
+      text-align: center;
+    }
+    .step { display: none; }
+    .title-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 15px;
+    }
+    .title-container h1 {
+      margin: 0 15px;
+      font-size: 2em;
+      color: #d81b60;
+    }
+    .title-icon { max-width: 80px; }
+    h2 { margin-bottom: 15px; color: #d81b60; }
+    .options {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+    .option {
+      width: 30%;
+      margin: 10px;
+      text-align: center;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .option:hover { transform: scale(1.05); }
+    .option img {
+      width: 100%;
+      max-width: 80px;
+      height: auto;
+      border-radius: 50%;
+      border: 2px solid #d81b60;
+      margin-bottom: 5px;
+    }
+    .option span {
+      display: block;
+      font-size: 1.1em;
+      color: #333;
+    }
+    button {
+      margin-top: 15px;
+      padding: 10px 15px;
+      background: #d81b60;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    button:hover { background: #ad113e; }
+    hr {
+      border: none;
+      border-top: 1px dashed #d81b60;
+      margin: 15px 0;
+    }
+    .result {
+      text-align: left;
+      margin-top: 20px;
+      padding: 10px;
+      border: 1px solid #ccc;
+      background: #f9f9f9;
+    }
+    .score { font-weight: bold; color: #d81b60; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- ステップ1：自分の性別選択 -->
+    <div id="step1" class="step">
+      <div class="title-container">
+        <img src="img/muscle.png" alt="Muscle" class="title-icon">
+        <h1>筋骨占い</h1>
+        <img src="img/bone.png" alt="Bone" class="title-icon">
+      </div>
+      <h2>自分の性別を選んでください</h2>
+      <div class="options">
+        <div class="option" onclick="selectSelfGender('female')">
+          <img src="img/female.png" alt="女">
+          <span>女</span>
+        </div>
+        <div class="option" onclick="selectSelfGender('male')">
+          <img src="img/male.png" alt="男">
+          <span>男</span>
+        </div>
+        <div class="option" onclick="selectSelfGender('unknown')">
+          <img src="img/unknown.png" alt="LGBTQ">
+          <span>LGBTQ</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ステップ2：自分の干支選択 -->
+    <div id="step2" class="step">
+      <h2>自分の干支を選んでください</h2>
+      <div class="options">
+        <div class="option" onclick="selectSelfEto('rat')">
+          <img src="img/rat.png" alt="子">
+          <span>子</span>
+        </div>
+        <div class="option" onclick="selectSelfEto('ox')">
+          <img src="img/ox.png" alt="丑">
+          <span>丑</span>
+        </div>
+        <div class="option" onclick="selectSelfEto('tiger')">
+          <img src="img/tiger.png" alt="寅">
+          <span>寅</span>
+        </div>
+        <div class="option" onclick="selectSelfEto('rabbit')">
+          <img src="img/rabbit.png" alt="卯">
+          <span>卯</span>
+        </div>
+        <div class="option" onclick="selectSelfEto('dragon')">
+          <img src="img/dragon.png" alt="辰">
+          <span>辰</span>
+        </div>
+        <div class="option" onclick="selectSelfEto('snake')">
+          <img src="img/snake.png" alt="巳">
+          <span>巳</span>
+        </div>
+        <div class="option" onclick="selectSelfEto('horse')">
+          <img src="img/horse.png" alt="午">
+          <span>午</span>
+        </div>
+        <div class="option" onclick="selectSelfEto('goat')">
+          <img src="img/goat.png" alt="未">
+          <span>未</span>
+        </div>
+        <div class="option" onclick="selectSelfEto('monkey')">
+          <img src="img/monkey.png" alt="申">
+          <span>申</span>
+        </div>
+        <div class="option" onclick="selectSelfEto('rooster')">
+          <img src="img/rooster.png" alt="酉">
+          <span>酉</span>
+        </div>
+        <div class="option" onclick="selectSelfEto('dog')">
+          <img src="img/dog.png" alt="戌">
+          <span>戌</span>
+        </div>
+        <div class="option" onclick="selectSelfEto('boar')">
+          <img src="img/boar.png" alt="亥">
+          <span>亥</span>
+        </div>
+      </div>
+      <button onclick="backStep('step1')">戻る</button>
+    </div>
+
+    <!-- ステップ3：自分の星座選択 -->
+    <div id="step3" class="step">
+      <h2>自分の星座を選んでください</h2>
+      <div class="options">
+        <div class="option" onclick="selectSelfZodiac('aries')">
+          <img src="img/aries.png" alt="牡羊">
+          <span>牡羊</span>
+        </div>
+        <div class="option" onclick="selectSelfZodiac('taurus')">
+          <img src="img/taurus.png" alt="牡牛">
+          <span>牡牛</span>
+        </div>
+        <div class="option" onclick="selectSelfZodiac('gemini')">
+          <img src="img/gemini.png" alt="双子">
+          <span>双子</span>
+        </div>
+        <div class="option" onclick="selectSelfZodiac('cancer')">
+          <img src="img/cancer.png" alt="蟹">
+          <span>蟹</span>
+        </div>
+        <div class="option" onclick="selectSelfZodiac('leo')">
+          <img src="img/leo.png" alt="獅子">
+          <span>獅子</span>
+        </div>
+        <div class="option" onclick="selectSelfZodiac('virgo')">
+          <img src="img/virgo.png" alt="乙女">
+          <span>乙女</span>
+        </div>
+        <div class="option" onclick="selectSelfZodiac('libra')">
+          <img src="img/libra.png" alt="天秤">
+          <span>天秤</span>
+        </div>
+        <div class="option" onclick="selectSelfZodiac('scorpio')">
+          <img src="img/scorpio.png" alt="蠍">
+          <span>蠍</span>
+        </div>
+        <div class="option" onclick="selectSelfZodiac('sagittarius')">
+          <img src="img/sagittarius.png" alt="射手">
+          <span>射手</span>
+        </div>
+        <div class="option" onclick="selectSelfZodiac('capricorn')">
+          <img src="img/capricorn.png" alt="山羊">
+          <span>山羊</span>
+        </div>
+        <div class="option" onclick="selectSelfZodiac('aquarius')">
+          <img src="img/aquarius.png" alt="水瓶">
+          <span>水瓶</span>
+        </div>
+        <div class="option" onclick="selectSelfZodiac('pisces')">
+          <img src="img/pisces.png" alt="魚">
+          <span>魚</span>
+        </div>
+      </div>
+      <button onclick="backStep('step2')">戻る</button>
+    </div>
+
+    <!-- ステップ4：相手の性別選択 -->
+    <div id="step4" class="step">
+      <h2>相性占いをご希望の場合<br>相手の性別を選んでください<br>(希望しない場合は「Skip」)</h2>
+      <div class="options">
+        <div class="option" onclick="selectPartnerGender('female')">
+          <img src="img/female.png" alt="女">
+          <span>女</span>
+        </div>
+        <div class="option" onclick="selectPartnerGender('male')">
+          <img src="img/male.png" alt="男">
+          <span>男</span>
+        </div>
+        <div class="option" onclick="selectPartnerGender('unknown')">
+          <img src="img/unknown.png" alt="LGBTQ">
+          <span>LGBTQ</span>
+        </div>
+        <div class="option" onclick="selectPartnerGender('unnecessary')">
+          <img src="img/unnecessary.png" alt="Skip">
+          <span>Skip</span>
+        </div>
+      </div>
+      <button onclick="backStep('step3')">戻る</button>
+    </div>
+
+    <!-- ステップ5：相手の干支選択（相手占い希望時のみ） -->
+    <div id="step5" class="step">
+      <h2>相手の干支を選んでください</h2>
+      <div class="options">
+        <div class="option" onclick="selectPartnerEto('rat')">
+          <img src="img/rat.png" alt="子">
+          <span>子</span>
+        </div>
+        <div class="option" onclick="selectPartnerEto('ox')">
+          <img src="img/ox.png" alt="丑">
+          <span>丑</span>
+        </div>
+        <div class="option" onclick="selectPartnerEto('tiger')">
+          <img src="img/tiger.png" alt="寅">
+          <span>寅</span>
+        </div>
+        <div class="option" onclick="selectPartnerEto('rabbit')">
+          <img src="img/rabbit.png" alt="卯">
+          <span>卯</span>
+        </div>
+        <div class="option" onclick="selectPartnerEto('dragon')">
+          <img src="img/dragon.png" alt="辰">
+          <span>辰</span>
+        </div>
+        <div class="option" onclick="selectPartnerEto('snake')">
+          <img src="img/snake.png" alt="巳">
+          <span>巳</span>
+        </div>
+        <div class="option" onclick="selectPartnerEto('horse')">
+          <img src="img/horse.png" alt="午">
+          <span>午</span>
+        </div>
+        <div class="option" onclick="selectPartnerEto('goat')">
+          <img src="img/goat.png" alt="未">
+          <span>未</span>
+        </div>
+        <div class="option" onclick="selectPartnerEto('monkey')">
+          <img src="img/monkey.png" alt="申">
+          <span>申</span>
+        </div>
+        <div class="option" onclick="selectPartnerEto('rooster')">
+          <img src="img/rooster.png" alt="酉">
+          <span>酉</span>
+        </div>
+        <div class="option" onclick="selectPartnerEto('dog')">
+          <img src="img/dog.png" alt="戌">
+          <span>戌</span>
+        </div>
+        <div class="option" onclick="selectPartnerEto('boar')">
+          <img src="img/boar.png" alt="亥">
+          <span>亥</span>
+        </div>
+      </div>
+      <button onclick="backStep('step4')">戻る</button>
+    </div>
+
+    <!-- ステップ6：相手の星座選択 -->
+    <div id="step6" class="step">
+      <h2>相手の星座を選んでください</h2>
+      <div class="options">
+        <div class="option" onclick="selectPartnerZodiac('aries')">
+          <img src="img/aries.png" alt="牡羊">
+          <span>牡羊</span>
+        </div>
+        <div class="option" onclick="selectPartnerZodiac('taurus')">
+          <img src="img/taurus.png" alt="牡牛">
+          <span>牡牛</span>
+        </div>
+        <div class="option" onclick="selectPartnerZodiac('gemini')">
+          <img src="img/gemini.png" alt="双子">
+          <span>双子</span>
+        </div>
+        <div class="option" onclick="selectPartnerZodiac('cancer')">
+          <img src="img/cancer.png" alt="蟹">
+          <span>蟹</span>
+        </div>
+        <div class="option" onclick="selectPartnerZodiac('leo')">
+          <img src="img/leo.png" alt="獅子">
+          <span>獅子</span>
+        </div>
+        <div class="option" onclick="selectPartnerZodiac('virgo')">
+          <img src="img/virgo.png" alt="乙女">
+          <span>乙女</span>
+        </div>
+        <div class="option" onclick="selectPartnerZodiac('libra')">
+          <img src="img/libra.png" alt="天秤">
+          <span>天秤</span>
+        </div>
+        <div class="option" onclick="selectPartnerZodiac('scorpio')">
+          <img src="img/scorpio.png" alt="蠍">
+          <span>蠍</span>
+        </div>
+        <div class="option" onclick="selectPartnerZodiac('sagittarius')">
+          <img src="img/sagittarius.png" alt="射手">
+          <span>射手</span>
+        </div>
+        <div class="option" onclick="selectPartnerZodiac('capricorn')">
+          <img src="img/capricorn.png" alt="山羊">
+          <span>山羊</span>
+        </div>
+        <div class="option" onclick="selectPartnerZodiac('aquarius')">
+          <img src="img/aquarius.png" alt="水瓶">
+          <span>水瓶</span>
+        </div>
+        <div class="option" onclick="selectPartnerZodiac('pisces')">
+          <img src="img/pisces.png" alt="魚">
+          <span>魚</span>
+        </div>
+      </div>
+      <button onclick="backStep('step5')">戻る</button>
+    </div>
+
+    <!-- ステップ7：結果表示 -->
+    <div id="step7" class="step">
+      <h2>占い結果</h2>
+      <div id="resultContent" class="result"></div>
+      <button onclick="finish()">終了</button>
+    </div>
+  </div>
+
+  <script>
+    // ユーザーデータ保存用
+    var userData = {
+      selfGender: null,
+      selfEto: null,
+      selfZodiac: null,
+      partnerGender: null,
+      partnerEto: null,
+      partnerZodiac: null,
+      selfFortune: null,
+      partnerFortune: null
+    };
+
+    // 24種の骨と筋肉（固定リスト）
+    var bones = [
+      "頑丈な大腿骨", "しなやかな脊椎", "強固な鎖骨", "神秘的な肋骨",
+      "しっかりした上腕骨", "華麗な橈骨", "優美な尺骨", "美しい手根骨",
+      "雄大な脛骨", "優雅な腓骨", "神聖な指骨", "古代の寛骨",
+      "輝く頭蓋骨", "柔軟な胸骨", "勇敢な膝蓋骨", "堅牢な下顎骨",
+      "光輝く肩甲骨", "静謐な尾骨", "風格ある頬骨", "洗練されたあぶみ骨",
+      "大地を感じる踵骨", "神々しい鼻骨", "奇跡の距骨", "未来を拓く舌骨"
+    ];
+    var muscles = [
+      "逞しい大胸筋", "引き締まった腹直筋", "力強い大腿四頭筋", "しなやかな上腕二頭筋",
+      "驚異の三角筋", "雄々しい広背筋", "躍動する前鋸筋", "柔軟な大内転筋",
+      "発達した僧帽筋", "鋭敏な腸腰筋", "躍動感あふれる大臀筋", "力強い下腿三頭筋",
+      "繊細な小円筋", "洗練された側頭筋", "勇猛な腕橈骨筋", "静寂な脊柱起立筋",
+      "堅実な上腕三頭筋", "雄大な大腿二頭筋", "飛翔する外腹斜筋", "調和の内腹斜筋",
+      "神秘の前脛骨筋", "芸術的な胸鎖乳突筋", "未来を創る菱形筋", "古典的な肩甲下筋"
+    ];
+
+    /* ★ 24×24の数値テーブル（サンプルデータ）
+       各セルは 1～15 の数値を想定。空欄の場合は 1 と扱います。 */
+    var tableValues = [];
+    for (var i = 0; i < 24; i++) {
+      var row = [];
+      for (var j = 0; j < 24; j++) {
+        var r = Math.random();
+        if (r < 0.1) {
+          row.push(""); // 空欄 → 1として扱う
+        } else if (r < 0.3) {
+          row.push(15);
+        } else if (r < 0.6) {
+          row.push(10);
+        } else if (r < 0.8) {
+          row.push(5);
+        } else {
+          row.push(1);
+        }
+      }
+      tableValues.push(row);
+    }
+
+    // ヘルパー：空欄やnullなら1を返す
+    function getTableValue(boneIndex, muscleIndex) {
+      var val = tableValues[boneIndex][muscleIndex];
+      if (val === "" || val == null) return 1;
+      return val;
+    }
+
+    /* computeFortune() は、性別・星座・干支からシードを作り、
+       自動的に骨と筋肉の組み合わせを決定します。 */
+    function computeFortune(gender, zodiac, eto, now) {
+      var year  = now.getFullYear();
+      var month = now.getMonth() + 1;
+      var day   = now.getDate();
+      var hour  = now.getHours();
+      
+      // 性別: male→1, female→2, それ以外→3
+      var genderValue = (gender === 'male') ? 1 : (gender === 'female') ? 2 : 3;
+      var zodiacValue;
+      switch(zodiac) {
+        case 'aries': zodiacValue = 1; break;
+        case 'taurus': zodiacValue = 2; break;
+        case 'gemini': zodiacValue = 3; break;
+        case 'cancer': zodiacValue = 4; break;
+        case 'leo': zodiacValue = 5; break;
+        case 'virgo': zodiacValue = 6; break;
+        case 'libra': zodiacValue = 7; break;
+        case 'scorpio': zodiacValue = 8; break;
+        case 'sagittarius': zodiacValue = 9; break;
+        case 'capricorn': zodiacValue = 10; break;
+        case 'aquarius': zodiacValue = 11; break;
+        case 'pisces': zodiacValue = 12; break;
+        default: zodiacValue = 0;
+      }
+      var etoValue;
+      switch(eto) {
+        case 'rat': etoValue = 1; break;
+        case 'ox': etoValue = 2; break;
+        case 'tiger': etoValue = 3; break;
+        case 'rabbit': etoValue = 4; break;
+        case 'dragon': etoValue = 5; break;
+        case 'snake': etoValue = 6; break;
+        case 'horse': etoValue = 7; break;
+        case 'goat': etoValue = 8; break;
+        case 'monkey': etoValue = 9; break;
+        case 'rooster': etoValue = 10; break;
+        case 'dog': etoValue = 11; break;
+        case 'boar': etoValue = 12; break;
+        default: etoValue = 0;
+      }
+      var seed = year + month + day + hour + genderValue + zodiacValue + etoValue;
+      
+      // 自動決定：24種の骨・筋肉の組み合わせ
+      var boneIndex = seed % bones.length;
+      var muscleIndex = (seed * 7) % muscles.length;
+      return {
+        bone: bones[boneIndex],
+        muscle: muscles[muscleIndex],
+        seed: seed
+      };
+    }
+
+    // 運気計算：24×24の表の値を使って、1～10のスコアに線形補間
+    function computeLuck(boneIndex, muscleIndex) {
+      var V = getTableValue(boneIndex, muscleIndex); // 1～15が想定
+      var score = ((V - 1) / 14) * 9 + 1;
+      var finalScore = Math.round(score);
+      if(finalScore < 1) finalScore = 1;
+      if(finalScore > 10) finalScore = 10;
+      return finalScore;
+    }
+
+    // 相性計算：自分の筋×相手の骨と自分の骨×相手の筋の合計を正規化（0～100%）
+    function computeCompatibility(selfBoneIndex, selfMuscleIndex, partnerBoneIndex, partnerMuscleIndex) {
+      var A = getTableValue(partnerBoneIndex, selfMuscleIndex); // 自分の筋 × 相手の骨
+      var B = getTableValue(selfBoneIndex, partnerMuscleIndex);   // 自分の骨 × 相手の筋
+      var sum = A + B; // 最小：1+1=2, 最大：15+15=30
+      var percent = ((sum - 2) / 28) * 100;
+      if (percent < 0) percent = 0;
+      if (percent > 100) percent = 100;
+      return Math.round(percent);
+    }
+
+    // コメント付与
+    function luckComment(score) {
+      if(score === 1) return "絶望的";
+      if(score === 10) return "絶好調";
+      if(score <= 3) return "かなり低調";
+      if(score <= 5) return "やや低め";
+      if(score <= 7) return "普通～まずまず";
+      if(score <= 9) return "好調";
+      return "？";
+    }
+    function compComment(percent) {
+      if(percent < 20) return "かなり厳しい…";
+      if(percent < 40) return "う～んイマイチ";
+      if(percent < 60) return "まずまず";
+      if(percent < 80) return "なかなか好相性！";
+      return "運命的な相性です！";
+    }
+
+    // ステップ移動
+    function showStep(stepId) {
+      var steps = document.getElementsByClassName("step");
+      for (var i = 0; i < steps.length; i++) {
+        steps[i].style.display = "none";
+      }
+      document.getElementById(stepId).style.display = "block";
+    }
+    function nextStep(stepId) { showStep(stepId); }
+    function backStep(stepId) { showStep(stepId); }
+
+    // 各選択関数（性別・干支・星座は従来と同じ）
+    function selectSelfGender(gender) {
+      userData.selfGender = gender;
+      showStep("step2");
+    }
+    function selectSelfEto(eto) {
+      userData.selfEto = eto;
+      showStep("step3");
+    }
+    function selectSelfZodiac(zodiac) {
+      userData.selfZodiac = zodiac;
+      // 自分の骨・筋肉は自動算出（computeFortune）するので、すぐに次のステップへ
+      showStep("step4");
+    }
+    // 相手について
+    function selectPartnerGender(gender) {
+      userData.partnerGender = gender;
+      if (gender === "unnecessary") {
+        // 相手占い不要の場合は結果画面へ
+        showResults();
+      } else {
+        showStep("step5");
+      }
+    }
+    function selectPartnerEto(eto) {
+      userData.partnerEto = eto;
+      showStep("step6");
+    }
+    function selectPartnerZodiac(zodiac) {
+      userData.partnerZodiac = zodiac;
+      showResults();
+    }
+
+    // 結果表示：自分および相手の骨・筋肉は自動算出され、24×24表で運気・相性を計算
+    function showResults() {
+      var now = new Date();
+      // 自分の骨・筋肉算出
+      userData.selfFortune = computeFortune(userData.selfGender, userData.selfZodiac, userData.selfEto, now);
+      var selfBoneIndex = bones.indexOf(userData.selfFortune.bone);
+      var selfMuscleIndex = muscles.indexOf(userData.selfFortune.muscle);
+      var selfLuck = computeLuck(selfBoneIndex, selfMuscleIndex);
+      var selfLuckText = luckComment(selfLuck);
+      var resultHTML = "<h3>あなたの結果</h3>";
+      resultHTML += "<p>骨: <strong>" + userData.selfFortune.bone + "</strong><br>";
+      resultHTML += "筋肉: <strong>" + userData.selfFortune.muscle + "</strong><br>";
+      resultHTML += "運気スコア: <span class='score'>" + selfLuck + "</span> (" + selfLuckText + ")</p>";
+
+      // 相手が占い希望の場合
+      if(userData.partnerGender !== "unnecessary" && userData.partnerGender !== null) {
+        userData.partnerFortune = computeFortune(userData.partnerGender, userData.partnerZodiac, userData.partnerEto, now);
+        var partnerBoneIndex = bones.indexOf(userData.partnerFortune.bone);
+        var partnerMuscleIndex = muscles.indexOf(userData.partnerFortune.muscle);
+        var partnerLuck = computeLuck(partnerBoneIndex, partnerMuscleIndex);
+        var partnerLuckText = luckComment(partnerLuck);
+        resultHTML += "<hr><h3>相手の結果</h3>";
+        resultHTML += "<p>骨: <strong>" + userData.partnerFortune.bone + "</strong><br>";
+        resultHTML += "筋肉: <strong>" + userData.partnerFortune.muscle + "</strong><br>";
+        resultHTML += "運気スコア: <span class='score'>" + partnerLuck + "</span> (" + partnerLuckText + ")</p>";
+        var compScore = computeCompatibility(selfBoneIndex, selfMuscleIndex, partnerBoneIndex, partnerMuscleIndex);
+        var compText = compComment(compScore);
+        resultHTML += "<hr><h3>相性診断結果</h3>";
+        resultHTML += "<p>相性: <span class='score'>" + compScore + "%</span><br>(" + compText + ")</p>";
+      }
+      document.getElementById("resultContent").innerHTML = resultHTML;
+      showStep("step7");
+    }
+
+    // 終了：リセットして最初の画面へ
+    function finish() {
+      userData = {
+        selfGender: null,
+        selfEto: null,
+        selfZodiac: null,
+        partnerGender: null,
+        partnerEto: null,
+        partnerZodiac: null,
+        selfFortune: null,
+        partnerFortune: null
+      };
+      showStep("step1");
+    }
+
+    // 初回：各ステップ表示開始
+    window.onload = function() {
+      showStep("step1");
+    };
+  </script>
+</body>
+</html>
