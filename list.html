@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>骨と筋肉の24×24表</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+    }
+    .table-container {
+      overflow-x: auto;
+      max-width: 100%;
+      border: 1px solid #ccc;
+      padding: 10px;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      table-layout: fixed;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 4px;
+      text-align: center;
+      font-size: 12px;
+      word-wrap: break-word;
+    }
+    th {
+      background-color: #f0f0f0;
+    }
+    tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+    caption {
+      font-size: 1.5em;
+      margin: 10px;
+      font-weight: bold;
+      color: #d81b60;
+    }
+    /* ホバー時のハイライト */
+    tr:hover {
+      background-color: #e3f2fd;
+    }
+    .highlight {
+      background-color: yellow !important;
+    }
+    #search {
+      margin-bottom: 10px;
+      padding: 5px;
+      width: 100%;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <h3>骨と筋肉の組み合わせ 24×24表</h3>
+  <input type="text" id="search" placeholder="骨または筋肉を検索...">
+  
+  <div class="table-container">
+    <table id="myTable">
+      <caption>骨と筋肉の組み合わせ 24×24表</caption>
+    </table>
+  </div>
+
+  <script>
+    var bones = [
+      "頑丈な大腿骨", "しなやかな脊椎", "強固な鎖骨", "神秘的な肋骨",
+      "しっかりした上腕骨", "華麗な橈骨", "優美な尺骨", "美しい手根骨",
+      "雄大な脛骨", "優雅な腓骨", "神聖な指骨", "古代の寛骨",
+      "輝く頭蓋骨", "柔軟な胸骨", "勇敢な膝蓋骨", "堅牢な下顎骨",
+      "光輝く肩甲骨", "静謐な尾骨", "風格ある頬骨", "洗練されたあぶみ骨",
+      "大地を感じる踵骨", "神々しい鼻骨", "奇跡の距骨", "未来を拓く舌骨"
+    ];
+
+    var muscles = [
+      "逞しい大胸筋", "引き締まった腹直筋", "力強い大腿四頭筋", "しなやかな上腕二頭筋",
+      "驚異の三角筋", "雄々しい広背筋", "躍動する前鋸筋", "柔軟な大内転筋",
+      "発達した僧帽筋", "鋭敏な腸腰筋", "躍動感あふれる大臀筋", "力強い下腿三頭筋",
+      "繊細な小円筋", "洗練された側頭筋", "勇猛な腕橈骨筋", "静寂な脊柱起立筋",
+      "堅実な上腕三頭筋", "雄大な大腿二頭筋", "飛翔する外腹斜筋", "調和の内腹斜筋",
+      "神秘の前脛骨筋", "芸術的な胸鎖乳突筋", "未来を創る菱形筋", "古典的な肩甲下筋"
+    ];
+    
+    var table = document.getElementById("myTable");
+
+    // ヘッダー作成
+    var thead = document.createElement("thead");
+    var headerRow = document.createElement("tr");
+    
+    // 最初のセル（左上隅）は空欄
+    var thEmpty = document.createElement("th");
+    thEmpty.textContent = "骨＼筋肉";
+    headerRow.appendChild(thEmpty);
+    
+    // 各筋肉名をヘッダーに追加
+    for (var j = 0; j < muscles.length; j++) {
+      var th = document.createElement("th");
+      th.textContent = muscles[j];
+      headerRow.appendChild(th);
+    }
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+
+    // 本体部分作成
+    var tbody = document.createElement("tbody");
+    for (var i = 0; i < bones.length; i++) {
+      var row = document.createElement("tr");
+      // 1列目に骨名
+      var thBone = document.createElement("th");
+      thBone.textContent = bones[i];
+      row.appendChild(thBone);
+      
+      // 各筋肉との組み合わせをセルに追加
+      for (var j = 0; j < muscles.length; j++) {
+        var cell = document.createElement("td");
+        cell.textContent = bones[i] + " / " + muscles[j];
+        row.appendChild(cell);
+      }
+      tbody.appendChild(row);
+    }
+    table.appendChild(tbody);
+
+    // 検索機能
+    document.getElementById("search").addEventListener("input", function () {
+      var searchText = this.value.trim();
+      var cells = table.getElementsByTagName("td");
+      var headers = table.getElementsByTagName("th");
+
+      // すべてのセルのハイライトをリセット
+      for (var i = 0; i < cells.length; i++) {
+        cells[i].classList.remove("highlight");
+      }
+      for (var i = 0; i < headers.length; i++) {
+        headers[i].classList.remove("highlight");
+      }
+
+      // 入力がある場合、該当セルをハイライト
+      if (searchText !== "") {
+        for (var i = 0; i < cells.length; i++) {
+          if (cells[i].textContent.includes(searchText)) {
+            cells[i].classList.add("highlight");
+          }
+        }
+        for (var i = 0; i < headers.length; i++) {
+          if (headers[i].textContent.includes(searchText)) {
+            headers[i].classList.add("highlight");
+          }
+        }
+      }
+    });
+  </script>
+</body>
+</html>
