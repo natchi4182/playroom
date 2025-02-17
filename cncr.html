@@ -118,7 +118,7 @@
   </div>
 
   <script>
-    // サイコロ画像（ご用意の画像パスに合わせて修正してください）
+    // サイコロ画像（パスは正しい前提）
     const diceImages = {
       1: "img/dice1.png",
       2: "img/dice2.png",
@@ -139,6 +139,14 @@
     let suddenDeathPlayers = []; // players 配列内の該当インデックス群
     let currentSuddenDeathIndex = 0;
     let suddenDeathResults = {}; // { playerIndex: { outcome, point, dice } }
+
+    // 画像のプリロード処理
+    window.addEventListener("DOMContentLoaded", function() {
+      for (let key in diceImages) {
+        const img = new Image();
+        img.src = diceImages[key];
+      }
+    });
 
     document.addEventListener("DOMContentLoaded", function() {
       // 各要素の取得
@@ -533,7 +541,7 @@
         });
         html += "</ol>";
         finalResults.innerHTML = html;
-        // ★ここを修正：ゲーム画面から結果画面に切り替える
+        // ゲーム画面から結果画面に切り替える
         switchScreen(gameScreen, resultScreen);
       }
 
