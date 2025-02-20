@@ -526,12 +526,42 @@
 
     // 2. 運気スコアを計算：tableValues から取り出した値(1～15)を 1～10 に線形補間
     function computeLuck(boneIndex, muscleIndex) {
-      var val = tableValues[boneIndex][muscleIndex];
-      if (!val) val = 1; // 念のため
-      var score = ((val - 1) / 14) * 9 + 1; // 1→1, 15→10
-      var finalScore = Math.round(score);
+      // 1. 現在の時刻から「時」を取得し、シードとして使用
+      var now = new Date();
+      var hour = now.getHours(); // 0～23
+    
+      // シード付き疑似乱数生成関数
+      function seededRandom(seed) {
+        var x = Math.sin(seed) * 10000;
+        return x - Math.floor(x);
+      }
+    
+      // Box-Muller法で標準正規分布（平均0, 標準偏差1）の乱数を生成
+      var u = seededRandom(hour);
+      var v = seededRandom(hour + 1); // 異なるシードを使用
+      var z = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+    
+      // 平均11、標準偏差3の正規分布に変換
+      var randVal = 11 + z * 3;
+    
+      // 0〜20の範囲にクランプ
+      if(randVal < 0) randVal = 0;
+      if(randVal > 20) randVal = 20;
+    
+      // 2. boneIndex, muscleIndexから tableValues の値（1〜15）を取得
+      var tableVal = tableValues[boneIndex][muscleIndex] || 1; // 念のため初期値1
+    
+      // 合計値を計算（理論上は最小 0+1=1, 最大 20+15=35）
+      var sum = randVal + tableVal;
+    
+      // 3. 合計値を1〜10の範囲に線形圧縮
+      // 補間式: (sum - 1) / (35 - 1) * (10 - 1) + 1 ＝ (sum - 1)/34*9 + 1
+      var compressed = ((sum - 1) / 34) * 9 + 1;
+      var finalScore = Math.round(compressed);
+    
       if(finalScore < 1) finalScore = 1;
       if(finalScore > 10) finalScore = 10;
+    
       return finalScore;
     }
 
