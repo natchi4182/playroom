@@ -567,14 +567,42 @@
 
     // 3. 相性を計算：自分の筋 × 相手の骨 + 自分の骨 × 相手の筋 を 0～100% に正規化
     function computeCompatibility(selfBoneIndex, selfMuscleIndex, partnerBoneIndex, partnerMuscleIndex) {
+      // 1. tableValuesから値を取得（値が無ければ1）
       var A = tableValues[partnerBoneIndex][selfMuscleIndex];
       var B = tableValues[selfBoneIndex][partnerMuscleIndex];
-      if(!A) A = 1;
-      if(!B) B = 1;
-      var sum = A + B; // 2～30
-      var percent = ((sum - 2) / 28) * 100;
-      if(percent < 0) percent = 0;
-      if(percent > 100) percent = 100;
+      if (!A) A = 1;
+      if (!B) B = 1;
+      
+      // 2. 現在の「時」からシードを作り、Box‐Muller法で乱数（0〜20）を生成
+      var now = new Date();
+      var hour = now.getHours(); // 0～23
+    
+      function seededRandom(seed) {
+        var x = Math.sin(seed) * 10000;
+        return x - Math.floor(x);
+      }
+      
+      var u = seededRandom(hour);
+      var v = seededRandom(hour + 1); // 異なるシード値を使用
+      var z = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+      
+      // 平均11、標準偏差3の正規分布に変換し、0〜20にクランプ
+      var randVal = 11 + z * 3;
+      if (randVal < 0) randVal = 0;
+      if (randVal > 20) randVal = 20;
+      
+      // 3. 乱数の3倍を加える
+      var randomComponent = randVal * 3; // 0〜60
+    
+      // 合計値：A + B + (乱数×3)（理論上の範囲は 2〜90）
+      var sum = A + B + randomComponent;
+    
+      // 4. 合計値を 0～100% に線形補間
+      // 最小値2、最大値90の範囲を 0～100% にマッピング
+      var percent = ((sum - 2) / (90 - 2)) * 100;
+      if (percent < 0) percent = 0;
+      if (percent > 100) percent = 100;
+      
       return Math.round(percent);
     }
 
