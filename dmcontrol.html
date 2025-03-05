@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>周術期血糖管理指示アプリ（サンプル）</title>
+</head>
+<body>
+
+  <h1>周術期血糖管理指示アプリ（サンプル）</h1>
+
+  <!-- ◆ 1) 患者基本情報、および過去の検査データ入力 ◆ -->
+  <fieldset style="margin-bottom: 1em;">
+    <legend>患者情報・過去検査データ</legend>
+
+    <label for="patientName">患者名：</label>
+    <input type="text" id="patientName" placeholder="山田 太郎"><br><br>
+
+    <label for="hba1c">過去のHbA1c(%)：</label>
+    <input type="number" id="hba1c" step="0.1" placeholder="7.5"><br><br>
+
+    <label for="lastFPG">直近の空腹時血糖(mg/dL)：</label>
+    <input type="number" id="lastFPG" placeholder="130"><br><br>
+  </fieldset>
+
+  <!-- ◆ 2) 常用する血糖降下薬の選択 ◆ -->
+  <fieldset style="margin-bottom: 1em;">
+    <legend>常用薬(経口血糖降下薬など)</legend>
+    <p>以下から該当するものを選択してください（複数選択可）：</p>
+
+    <input type="checkbox" id="drugMetformin" name="drug" value="metformin">
+    <label for="drugMetformin">メトホルミン</label><br>
+
+    <input type="checkbox" id="drugSGLT2" name="drug" value="sglt2">
+    <label for="drugSGLT2">SGLT2阻害薬</label><br>
+
+    <input type="checkbox" id="drugSU" name="drug" value="su">
+    <label for="drugSU">SU剤(グリメピリド等)</label><br>
+
+    <input type="checkbox" id="drugDPP4" name="drug" value="dpp4">
+    <label for="drugDPP4">DPP-4阻害薬</label><br>
+
+    <input type="checkbox" id="drugGLP1" name="drug" value="glp1">
+    <label for="drugGLP1">GLP-1受容体作動薬</label><br>
+
+    <input type="checkbox" id="drugOthers" name="drug" value="others">
+    <label for="drugOthers">その他</label>
+  </fieldset>
+
+  <!-- ◆ 3) 入院後の定期血糖値入力＆インスリン投与状況 ◆ -->
+  <fieldset style="margin-bottom: 1em;">
+    <legend>入院後の血糖測定値・インスリン情報</legend>
+
+    <label for="bgData">直近の血糖値推移 (mg/dL, 時間ごと等)：</label><br>
+    <textarea id="bgData" rows="4" cols="50" placeholder="例）8:00 160, 12:00 220, 18:00 200, 22:00 180"></textarea>
+    <br><br>
+
+    <label for="insulinInfo">インスリン投与種類・用量：</label><br>
+    <textarea id="insulinInfo" rows="3" cols="50" placeholder="例）グラルギン 10単位/日、リスプロ 食前 4単位×3など"></textarea>
+  </fieldset>
+
+  <!-- ◆ 4) 食事オーダー内容入力 ◆ -->
+  <fieldset style="margin-bottom: 1em;">
+    <legend>食事オーダー情報</legend>
+
+    <label for="calorie">1日総カロリー(kcal)：</label>
+    <input type="number" id="calorie" placeholder="1800"><br><br>
+
+    <label for="mealMemo">その他食事に関するメモ：</label><br>
+    <textarea id="mealMemo" rows="3" cols="50" placeholder="例）糖質制限強化食、蛋白制限など"></textarea>
+  </fieldset>
+
+  <!-- ◆ 5) 指示生成ボタン・出力エリア ◆ -->
+  <button id="generateBtn" style="margin-top: 1em;">指示内容を生成</button>
+
+  <hr>
+
+  <h2>自動生成された指示内容（サンプル）</h2>
+  <div id="instructionArea" style="border: 1px solid #999; padding: 1em; min-height: 200px;">
+    <!-- 指示内容をJavaScriptで生成してここに表示 -->
+  </div>
+
+  <script>
+    // ▼ ボタン押下時に指示を生成する処理 ▼
+    document.getElementById('generateBtn').addEventListener('click', function() {
+
+      // 入力フォームからの値を取得
+      const patientName = document.getElementById('patientName').value || '患者名未入力';
+      const hba1c = document.getElementById('hba1c').value;
+      const lastFPG = document.getElementById('lastFPG').value;
+
+      const drugMetformin = document.getElementById('drugMetformin').checked;
+      const drugSGLT2 = document.getElementById('drugSGLT2').checked;
+      const drugSU = document.getElementById('drugSU').checked;
+      const drugDPP4 = document.getElementById('drugDPP4').checked;
+      const drugGLP1 = document.getElementById('drugGLP1').checked;
+      const drugOthers = document.getElementById('drugOthers').checked;
+
+      const bgData = document.getElementById('bgData').value;
+      const insulinInfo = document.getElementById('insulinInfo').value;
+
+      const calorie = document.getElementById('calorie').value;
+      const mealMemo = document.getElementById('mealMemo').value;
+
+      // ▼ 簡易的な解析ロジック例（実際には医療者による詳細設計が必要）▼
+      // HbA1cが高い → 術前から高血糖傾向？ → メトホルミンやSGLT2があるなら中止タイミング注意
+      // 血糖データやインスリン用量を見て、高血糖の補正が必要かどうか判断
+      // ここでは単純に文章を分岐して作っているだけ
+
+      let instructionText = `【患者名】${patientName}\n\n`;
+
+      // 過去データ
+      instructionText += `◆ 過去HbA1c: ${hba1c ? hba1c + '%' : '情報なし'}\n`;
+      instructionText += `◆ 直近空腹時血糖: ${lastFPG ? lastFPG + ' mg/dL' : '情報なし'}\n\n`;
+
+      // 常用薬ごとの注意例
+      instructionText += `◆ 常用血糖降下薬:\n`;
+      if (drugMetformin) {
+        instructionText += `  - メトホルミン: 術前日夕食後までで中止推奨（腎機能リスクに応じて調整）\n`;
+      }
+      if (drugSGLT2) {
+        instructionText += `  - SGLT2阻害薬: 術前日 or 当日中止（脱水・ケトアシドーシス注意）\n`;
+      }
+      if (drugSU) {
+        instructionText += `  - SU剤: 低血糖注意。術当日朝は原則中止\n`;
+      }
+      if (drugDPP4) {
+        instructionText += `  - DPP-4阻害薬: 必要に応じ術当日は中止。施設ごとに方針確認\n`;
+      }
+      if (drugGLP1) {
+        instructionText += `  - GLP-1受容体作動薬: 腸管蠕動への影響がある可能性。投与タイミング要調整\n`;
+      }
+      if (drugOthers) {
+        instructionText += `  - その他の経口薬あり: 別途調整要\n`;
+      }
+      if (!drugMetformin && !drugSGLT2 && !drugSU && !drugDPP4 && !drugGLP1 && !drugOthers) {
+        instructionText += `  - 特になし\n`;
+      }
+      instructionText += `\n`;
+
+      // 血糖推移
+      instructionText += `◆ 入院後血糖推移:\n${bgData ? bgData : '情報なし'}\n\n`;
+
+      // インスリン情報
+      instructionText += `◆ インスリン投与:\n${insulinInfo ? insulinInfo : '情報なし'}\n\n`;
+
+      // 食事オーダー
+      instructionText += `◆ 食事オーダー: 1日${calorie ? calorie + 'kcal' : 'カロリー未入力'}\n`;
+      if (mealMemo) {
+        instructionText += `   - 補足メモ: ${mealMemo}\n`;
+      }
+      instructionText += `\n`;
+
+      // 簡単な周術期指示文サンプル（ロジックはダミー）
+      instructionText += `【周術期血糖管理 指示サンプル】\n`;
+      instructionText += `1) 術前日夜：持効型インスリンは通常量の 70–80% を目安に投与\n`;
+      if (drugSU) {
+        instructionText += `   - SU剤内服中の場合、低血糖回避のため夜間/当日朝は中止\n`;
+      }
+      if (drugMetformin) {
+        instructionText += `   - メトホルミンは手術前日夕食後を最終投与とし、中止\n`;
+      }
+
+      instructionText += `2) 術当日朝：\n`;
+      instructionText += `   - 速効型インスリンは血糖値 > 180 mg/dL時のみ少量投与（2–4U程度）\n`;
+      if (drugSGLT2) {
+        instructionText += `   - SGLT2阻害薬は当日朝は服用しない\n`;
+      }
+
+      instructionText += `3) 術中：必要に応じ点滴内インスリン（IVインスリン）で血糖 140–180 mg/dLを目安に管理\n`;
+      instructionText += `4) 術後：6時間おき血糖測定。高血糖(>180 mg/dL)時は超速効型インスリン 2〜4U補正投与\n\n`;
+      instructionText += `※ 実際の運用は必ず各施設プロトコールや主治医判断で調整\n`;
+
+      // 結果を画面表示
+      const instructionArea = document.getElementById('instructionArea');
+      instructionArea.textContent = instructionText;
+    });
+  </script>
+
+</body>
+</html>
