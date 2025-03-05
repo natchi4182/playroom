@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>周術期血糖管理指示アプリ（サンプル）</title>
+</head>
+<body>
+
+  <h1>周術期血糖管理指示アプリ（サンプル）</h1>
+
+  <!-- ◆ 1) 患者基本情報、および過去の検査データ入力 ◆ -->
+  <fieldset style="margin-bottom: 1em;">
+    <legend>患者情報・過去検査データ</legend>
+
+    <label for="patientName">患者名：</label>
+    <input type="text" id="patientName" placeholder="山田 太郎"><br><br>
+
+    <label for="hba1c">過去のHbA1c(%)：</label>
+    <input type="number" id="hba1c" step="0.1" placeholder="7.5"><br><br>
+
+    <label for="lastFPG">直近の空腹時血糖(mg/dL)：</label>
+    <input type="number" id="lastFPG" placeholder="130"><br><br>
+  </fieldset>
+
+  <!-- ◆ 2) 常用する血糖降下薬の選択 ◆ -->
+  <fieldset style="margin-bottom: 1em;">
+    <legend>常用薬(経口血糖降下薬など)</legend>
+    <p>以下から該当するものを選択してください（複数選択可）：</p>
+
+    <input type="checkbox" id="drugMetformin" name="drug" value="metformin">
+    <label for="drugMetformin">メトホルミン</label><br>
+
+    <input type="checkbox" id="drugSGLT2" name="drug" value="sglt2">
+    <label for="drugSGLT2">SGLT2阻害薬</label><br>
+
+    <input type="checkbox" id="drugSU" name="drug" value="su">
+    <label for="drugSU">SU剤(グリメピリド等)</label><br>
+
+    <input type="checkbox" id="drugDPP4" name="drug" value="dpp4">
+    <label for="drugDPP4">DPP-4阻害薬</label><br>
+
+    <input type="checkbox" id="drugGLP1" name="drug" value="glp1">
+    <label for="drugGLP1">GLP-1受容体作動薬</label><br>
+
+    <input type="checkbox" id="drugOthers" name="drug" value="others">
+    <label for="drugOthers">その他</label>
+  </fieldset>
+
+  <!-- ◆ 3) 直近の血糖値推移とインスリン投与量・種類を簡潔に入力できるUI ◆ -->
+  <fieldset style="margin-bottom: 1em;">
+    <legend>直近の血糖値・インスリン投与記録</legend>
+    <p>必要な行数だけ追加して入力してください。</p>
+    <table id="recentDataTable" border="1" cellpadding="4" cellspacing="0">
+      <thead>
+        <tr>
+          <th>測定時間</th>
+          <th>血糖値 (mg/dL)</th>
+          <th>インスリン種類</th>
+          <th>投与量 (単位)</th>
+          <th>削除</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- 行が追加される -->
+      </tbody>
+    </table>
+    <br>
+    <button type="button" id="addRowBtn">行を追加</button>
+  </fieldset>
+
+  <!-- ◆ 4) 食事オーダー内容入力 ◆ -->
+  <fieldset style="margin-bottom: 1em;">
+    <legend>食事オーダー情報</legend>
+
+    <label for="calorie">1日総カロリー(kcal)：</label>
+    <input type="number" id="calorie" placeholder="1800"><br><br>
+
+    <label for="mealMemo">その他食事に関するメモ：</label><br>
+    <textarea id="mealMemo" rows="3" cols="50" placeholder="例）糖質制限強化食、蛋白制限など"></textarea>
+  </fieldset>
+
+  <!-- ◆ 5) 指示生成ボタン・出力エリア ◆ -->
+  <button id="generateBtn" style="margin-top: 1em;">指示内容を生成</button>
+
+  <hr>
+
+  <h2>自動生成された指示内容（サンプル）</h2>
+  <div id="instructionArea" style="border: 1px solid #999; padding: 1em; min-height: 200px;">
+    <!-- 指示内容をJavaScriptで生成してここに表示 -->
+  </div>
+
+  <script>
+    // ▼ 1) 表に新しい行を追加する関数 ▼
+    function addNewRow() {
+      const tbody = document.querySelector('#recentDataTable tbody');
+      const newRow = document.createElement('tr');
+
+      // 測定時間
+      const tdTime = document.createElement('td');
+      const inputTime = document.createElement('input');
+      inputTime.type = 'text';
+      inputTime.placeholder = '例) 8:00';
+      tdTime.appendChild(inputTime);
+      newRow.appendChild(tdTime);
+
+      // 血糖値
+      const tdBG = document.createElement('td');
+      const inputBG = document.createElement('input');
+      inputBG.type = 'number';
+      inputBG.placeholder = 'mg/dL';
+      tdBG.appendChild(inputBG);
+      newRow.appendChild(tdBG);
+
+      // インスリン種類 (ドロップダウン)
+      const tdInsType = document.createElement('td');
+      const selectInsType = document.createElement('select');
+      // 選択肢
+      const insulinOptions = [
+        { value: '', text: '無し/未使用' },
+        { value: '速効型', text: '速効型(リスプロ等)' },
+        { value: '超速効型', text: '超速効型(アスパルト等)' },
+        { value: '中間型', text: '中間型(NPH等)' },
+        { value: '持効型', text: '持効型(グラルギン/デグルデク等)' }
+      ];
+      insulinOptions.forEach(opt => {
+        const option = document.createElement('option');
+        option.value = opt.value;
+        option.textContent = opt.text;
+        selectInsType.appendChild(option);
+      });
+      tdInsType.appendChild(selectInsType);
+      newRow.appendChild(tdInsType);
+
+      // インスリン投与量
+      const tdInsDose = document.createElement('td');
+      const inputInsDose = document.createElement('input');
+      inputInsDose.type = 'number';
+      inputInsDose.placeholder = '単位(U)';
+      tdInsDose.appendChild(inputInsDose);
+      newRow.appendChild(tdInsDose);
+
+      // 削除ボタン
+      const tdDelete = document.createElement('td');
+      const delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.textContent = '削除';
+      delBtn.addEventListener('click', () => {
+        tbody.removeChild(newRow);
+      });
+      tdDelete.appendChild(delBtn);
+      newRow.appendChild(tdDelete);
+
+      tbody.appendChild(newRow);
+    }
+
+    // ▼ 2) 画面ロード時に初期行を1つ追加しておく ▼
+    window.addEventListener('DOMContentLoaded', () => {
+      addNewRow(); // デフォルトで1行追加
+    });
+
+    // ▼ 3) 「行を追加」ボタンが押されたら新しい行を追加 ▼
+    document.getElementById('addRowBtn').addEventListener('click', () => {
+      addNewRow();
+    });
+
+    // ▼ 4) 「指示内容を生成」ボタン ▼
+    document.getElementById('generateBtn').addEventListener('click', function() {
+
+      // 患者基本情報
+      const patientName = document.getElementById('patientName').value || '患者名未入力';
+      const hba1c = document.getElementById('hba1c').value;
+      const lastFPG = document.getElementById('lastFPG').value;
+
+      // 常用薬
+      const drugMetformin = document.getElementById('drugMetformin').checked;
+      const drugSGLT2    = document.getElementById('drugSGLT2').checked;
+      const drugSU       = document.getElementById('drugSU').checked;
+      const drugDPP4     = document.getElementById('drugDPP4').checked;
+      const drugGLP1     = document.getElementById('drugGLP1').checked;
+      const drugOthers   = document.getElementById('drugOthers').checked;
+
+      // 食事オーダー
+      const calorie = document.getElementById('calorie').value;
+      const mealMemo = document.getElementById('mealMemo').value;
+
+      // テーブル内容（血糖値＆インスリン投与）を取得
+      const tableRows = document.querySelectorAll('#recentDataTable tbody tr');
+      let bgInsulinDataText = '';
+      tableRows.forEach(row => {
+        const time    = row.cells[0].querySelector('input').value;      // 測定時間
+        const bg      = row.cells[1].querySelector('input').value;      // 血糖値
+        const insType = row.cells[2].querySelector('select').value;     // インスリン種類
+        const insDose = row.cells[3].querySelector('input').value;      // インスリン投与量
+
+        bgInsulinDataText += `- 時間: ${time || '---'}, 血糖: ${bg || '--'} mg/dL, `;
+        bgInsulinDataText += `インスリン: ${insType || '無し'} (${insDose ? insDose + 'U' : '0U'})\n`;
+      });
+
+      // 指示文生成（サンプル）
+      let instructionText = `【患者名】${patientName}\n\n`;
+      instructionText += `◆ 過去HbA1c: ${hba1c ? hba1c + '%' : '情報なし'}\n`;
+      instructionText += `◆ 直近空腹時血糖: ${lastFPG ? lastFPG + ' mg/dL' : '情報なし'}\n\n`;
+
+      instructionText += `◆ 常用血糖降下薬:\n`;
+      if (drugMetformin) instructionText += `  - メトホルミン: 術前日夕食後までで中止推奨\n`;
+      if (drugSGLT2)    instructionText += `  - SGLT2阻害薬: 術前日 or 当日中止（脱水注意）\n`;
+      if (drugSU)       instructionText += `  - SU剤: 低血糖注意。術当日朝は原則中止\n`;
+      if (drugDPP4)     instructionText += `  - DPP-4阻害薬: 必要に応じ術当日は中止\n`;
+      if (drugGLP1)     instructionText += `  - GLP-1受容体作動薬: 投与タイミング要調整\n`;
+      if (drugOthers)   instructionText += `  - その他: 別途調整\n`;
+      if (!drugMetformin && !drugSGLT2 && !drugSU && !drugDPP4 && !drugGLP1 && !drugOthers) {
+        instructionText += `  - 特になし\n`;
+      }
+      instructionText += `\n`;
+
+      instructionText += `◆ 直近の血糖値・インスリン投与状況:\n`;
+      instructionText += (bgInsulinDataText || '記録なし') + '\n';
+
+      instructionText += `◆ 食事オーダー: 1日 ${calorie ? calorie + 'kcal' : '未入力'}\n`;
+      if (mealMemo) {
+        instructionText += `   - 補足メモ: ${mealMemo}\n`;
+      }
+      instructionText += `\n`;
+
+      // 簡易的な周術期指示サンプル（ロジックはダミー）
+      instructionText += `【周術期血糖管理 指示例】\n`;
+      instructionText += `1) 術前日夜：持効型インスリンは通常量の 70–80% を目安に投与\n`;
+      if (drugSU) {
+        instructionText += `   - SU剤内服中の場合、低血糖回避のため夜間/当日朝は中止\n`;
+      }
+      if (drugMetformin) {
+        instructionText += `   - メトホルミンは手術前日夕食後を最終投与とし、中止\n`;
+      }
+      instructionText += `2) 術当日朝：速効型インスリンは血糖値 > 180 mg/dL時のみ少量投与（2–4U程度）\n`;
+      instructionText += `3) 術中：必要に応じ点滴内インスリンで血糖 140–180 mg/dLを目安に管理\n`;
+      instructionText += `4) 術後：6時間おき血糖測定。高血糖(>180 mg/dL)時は超速効型インスリン 2〜4U補正投与\n\n`;
+      instructionText += `※ 実際の運用は必ず各施設プロトコールや主治医判断で調整\n`;
+
+      // 表示
+      document.getElementById('instructionArea').textContent = instructionText;
+    });
+  </script>
+
+</body>
+</html>
