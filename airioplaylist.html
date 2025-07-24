@@ -20,7 +20,6 @@
       { videoId: "OYuf9rKviAU", start: 34, duration: 35 }, // つながりの奇跡
     ];
 
-    let currentIndex = 0;
     let player;
     let segmentTimer;
     let isSegmentPlaying = false;
@@ -30,7 +29,7 @@
     tag.src = "https://www.youtube.com/iframe_api";
     document.head.appendChild(tag);
 
-    // プレイヤーの初期化
+    // プレイヤー準備完了後の処理
     function onYouTubeIframeAPIReady() {
       player = new YT.Player('player', {
         height: '390',
@@ -42,33 +41,46 @@
         events: {
           onReady: () => {
             player.mute(); // 念のためミュート設定を強制
-            loadSegment();
+            playRdandomSegment(); // 最初の再生
           },
           onStateChange: onPlayerStateChange
         }
       });
     }
   
-    function loadSegment() {
-      const segment = playSegments[currentIndex];
-      isSegmentPlaying = false;
+    // 動画の再生状態が変わったときの処理
+    function onPlayerStateChange(event) {
+      if (event.data === YT.PlayerState.PLAYING && !isSegmentPlaying) {
+        isSegmentPlaying = true;
+        const currentSegment = player.getVideoData();
+        const currentIndex = getCurrentSegmentIndex(currentSegment.video_id);
+        if (currentIndex !== -1) {
+          const duration = playSegments[currentIndex].duration;
+          segmentTimer = setTimeout(() => {
+            playRandomSegment();
+          }, duration * 1000);
+        } else {
+          // 万一 video_id が一致しなければ即再切り替え
+          playRandomSegment();
+        }
+      }
+    }
+
+    // ランダムに1つ選んで再生
+    function playRandomSegment() {
       clearTimeout(segmentTimer);
+      isSegmentPlaying = false;
+      const index = Math.floor(Math.random() * playSegments.length);
+      const segment = playSegments[index];
       player.loadVideoById({
         videoId: segment.videoId,
         startSeconds: segment.start
       });
     }
-  
-    function onPlayerStateChange(event) {
-      if (event.data === YT.PlayerState.PLAYING && !isSegmentPlaying) {
-        // 本編が再生され始めたらタイマーをスタート
-        isSegmentPlaying = true;
-        const segment = playSegments[currentIndex];
-        segmentTimer = setTimeout(() => {
-          currentIndex = (currentIndex + 1) % playSegments.length; // ループ再生
-          loadSegment();
-        }, segment.duration * 1000);
-      }
+
+    // 現在の videoId に一致するインデックスを返す
+    function getCurrentSegmentIndex(videoId) {
+      return playSegments.findIndex(seg => seg.videoId === videoId);
     }
   </script>
 </body>
