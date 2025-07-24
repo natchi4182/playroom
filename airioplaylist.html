@@ -25,17 +25,25 @@
     let segmentTimer;
     let isSegmentPlaying = false;
 
-    // YouTube API 読み込み
+    // YouTube IFrame API 読み込み
     const tag = document.createElement('script');
     tag.src = "https://www.youtube.com/iframe_api";
     document.head.appendChild(tag);
 
+    // プレイヤーの初期化
     function onYouTubeIframeAPIReady() {
       player = new YT.Player('player', {
         height: '390',
         width: '640',
+        playerVars: {
+          autoplay: 1, // 自動再生を有効に
+          mute: 1      // ミュートで再生（自動再生制限を回避）
+        },
         events: {
-          onReady: loadSegment,
+          onReady: () => {
+            player.mute(); // 念のためミュート設定を強制
+            loadSegment();
+          },
           onStateChange: onPlayerStateChange
         }
       });
