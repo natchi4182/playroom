@@ -2,85 +2,108 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>AirIo Apollo Highlight Player</title>
+  <title>🎵AirIo Apollo Highlight Player🎵</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+    #player {
+      margin-top: 20px;
+    }
+    .info {
+      margin-top: 10px;
+      font-size: 1.2em;
+    }
+  </style>
 </head>
 <body>
-  <h2>AirIo Apollo Highlight Player</h2>
+  <h2>🎵AirIo Apollo Highlight Player🎵</h2>
   <div id="player"></div>
+  <div class="info">
+    <div><strong>Title:</strong> <span id="title">---</span></div>
+    <div><strong>Artist:</strong> <span id="artist">---</span></div>
+  </div>
 
   <script>
-    // ★再生リスト：動画ID・開始位置・再生時間（秒）
+    // ★動画リスト（動画ID・開始位置・再生時間（秒）・タイトル・アーチスト）
     const playSegments = [
-      { videoId: "x0yocJ7M1A4", start: 46, duration: 35 }, // Deep Breath
-      { videoId: "qug0wZTMaWM", start: 43, duration: 35 }, // Innocent
-      { videoId: "8FK2DDy2hIw", start: 82, duration: 35 }, // Scarlet Loafers
-      { videoId: "KLrBUfB7izw", start: 33, duration: 35 }, // みんなその統計、間違ってますよー
-      { videoId: "P4DLSdeyhjs", start: 40, duration: 35 }, // ちょっと君その検定、おかしいんじゃな〜い？
-      { videoId: "cwNJ50lPBaY", start: 20, duration: 35 }, // レジの横で待ってるよ
-      { videoId: "OYuf9rKviAU", start: 34, duration: 35 }, // つながりの奇跡
+      { videoId: "x0yocJ7M1A4", start: 46, duration: 36, title: "Deep Breath",                     artist: "一之瀬ユナ" },
+      { videoId: "qug0wZTMaWM", start: 43, duration: 36, title: "Innocent",                        artist: "一之瀬ユナ" },
+      { videoId: "8FK2DDy2hIw", start: 82, duration: 36, title: "Scarlet Loafers",                 artist: "Miho" },
+      { videoId: "KLrBUfB7izw", start: 33, duration: 36, title: "みんなその統計、間違ってますよー",        artist: "統計シスターズ" },
+      { videoId: "P4DLSdeyhjs", start: 40, duration: 36, title: "ちょっと君その検定、おかしいんじゃな〜い？", artist: "統計シスターズ" },
+      { videoId: "cwNJ50lPBaY", start: 20, duration: 36, title: "レジの横で待ってるよ",                 artist: "とりまる" },
+      { videoId: "OYuf9rKviAU", start: 34, duration: 36, title: "つながりの奇跡",                      artist: "一之瀬ユナ" }
     ];
 
     let player;
-    let segmentTimer;
+    let segmentTimer = null;
     let isSegmentPlaying = false;
+    let lastIndex = -1; // 前回の動画インデックス
 
-    // YouTube IFrame API 読み込み
+    // YouTube API 読み込み
     const tag = document.createElement('script');
     tag.src = "https://www.youtube.com/iframe_api";
     document.head.appendChild(tag);
 
-    // プレイヤー準備完了後の処理
     function onYouTubeIframeAPIReady() {
       player = new YT.Player('player', {
         height: '390',
         width: '640',
         playerVars: {
-          autoplay: 1, // 自動再生を有効に
-          mute: 1      // ミュートで再生（自動再生制限を回避）
+          autoplay: 1,
+          mute: 1
         },
         events: {
           onReady: () => {
-            player.mute(); // 念のためミュート設定を強制
-            playRdandomSegment(); // 最初の再生
+            player.mute(); // 自動再生許可のためミュート
+            playRandomSegment();
           },
           onStateChange: onPlayerStateChange
         }
       });
     }
-  
-    // 動画の再生状態が変わったときの処理
+
     function onPlayerStateChange(event) {
       if (event.data === YT.PlayerState.PLAYING && !isSegmentPlaying) {
         isSegmentPlaying = true;
         const currentSegment = player.getVideoData();
-        const currentIndex = getCurrentSegmentIndex(currentSegment.video_id);
+        const currentIndex = playSegments.findIndex(seg => seg.videoId === currentSegment.video_id);
         if (currentIndex !== -1) {
           const duration = playSegments[currentIndex].duration;
           segmentTimer = setTimeout(() => {
             playRandomSegment();
           }, duration * 1000);
         } else {
-          // 万一 video_id が一致しなければ即再切り替え
           playRandomSegment();
         }
       }
     }
 
-    // ランダムに1つ選んで再生
     function playRandomSegment() {
       clearTimeout(segmentTimer);
       isSegmentPlaying = false;
-      const index = Math.floor(Math.random() * playSegments.length);
+
+      let index;
+      do {
+        index = Math.floor(Math.random() * playSegments.length);
+      } while (index === lastIndex && playSegments.length > 1);
+
+      lastIndex = index;
+
       const segment = playSegments[index];
+
+      // 動画のロード
       player.loadVideoById({
         videoId: segment.videoId,
         startSeconds: segment.start
       });
-    }
 
-    // 現在の videoId に一致するインデックスを返す
-    function getCurrentSegmentIndex(videoId) {
-      return playSegments.findIndex(seg => seg.videoId === videoId);
+      // タイトル・アーティスト名の表示
+      document.getElementById("title").textContent = segment.title;
+      document.getElementById("artist").textContent = segment.artist;
     }
   </script>
 </body>
