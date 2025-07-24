@@ -23,40 +23,39 @@
     let currentIndex = 0;
     let player;
     let segmentTimer;
-
-    // YouTube API 読み込み
-    const tag = document.createElement('script');
-    tag.src = "https://www.youtube.com/iframe_api";
-    document.head.appendChild(tag);
-
-    // プレイヤー初期化
+    let isSegmentPlaying = false;
+  
     function onYouTubeIframeAPIReady() {
       player = new YT.Player('player', {
         height: '390',
         width: '640',
         events: {
-          onReady: playNextSegment
+          onReady: loadSegment,
+          onStateChange: onPlayerStateChange
         }
       });
     }
-
-    function playNextSegment() {
-      if (currentIndex >= playSegments.length) {
-        currentIndex = 0; // ★ループ再生する
-      }
-
+  
+    function loadSegment() {
       const segment = playSegments[currentIndex];
+      isSegmentPlaying = false;
+      clearTimeout(segmentTimer);
       player.loadVideoById({
         videoId: segment.videoId,
-        startSeconds: segment.start,
+        startSeconds: segment.start
       });
-
-      // 指定時間だけ再生したら次へ
-      clearTimeout(segmentTimer);
-      segmentTimer = setTimeout(() => {
-        currentIndex++;
-        playNextSegment();
-      }, segment.duration * 1000);
+    }
+  
+    function onPlayerStateChange(event) {
+      if (event.data === YT.PlayerState.PLAYING && !isSegmentPlaying) {
+        // 本編が再生され始めたらタイマーをスタート
+        isSegmentPlaying = true;
+        const segment = playSegments[currentIndex];
+        segmentTimer = setTimeout(() => {
+          currentIndex = (currentIndex + 1) % playSegments.length; // ループ再生
+          loadSegment();
+        }, segment.duration * 1000);
+      }
     }
   </script>
 </body>
