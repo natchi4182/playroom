@@ -1,0 +1,413 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>七つの大罪 レーダーチャート診断</title>
+<meta name="description" content="質問に答えると七つの大罪（傲慢・強欲・嫉妬・憤怒・色欲・暴食・怠惰）をレーダーチャートで可視化する自己診断ツール。" />
+<link rel="preconnect" href="https://cdn.jsdelivr.net" />
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+<!-- Chart.js v4 -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" integrity="sha256-7O1d1dY8D5tYy0Z0GKVr3o01UQk6cL6Qx3wV8bA7yCw=" crossorigin="anonymous"></script>
+<style>
+  :root{
+    --bg:#f7f8fb; --fg:#0f172a; --muted:#64748b; --accent:#2563eb; --card:#ffffff; --border:#e5e7eb;
+  }
+  html,body{height:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--fg);
+    font-family: "Meiryo UI", "Yu Gothic UI", "Hiragino Kaku Gothic ProN", system-ui, -apple-system, sans-serif;
+    line-height:1.6;
+  }
+  header{padding:12px 16px; background:var(--card); border-bottom:1px solid var(--border); position:sticky; top:0; z-index:10}
+  header h1{margin:0; font-size:clamp(18px,2.6vw,22px)}
+  header small{color:var(--muted)}
+  main{max-width:1100px; margin:16px auto; padding:0 12px 40px}
+  .grid{display:grid; grid-template-columns:1fr 1fr; gap:16px}
+  @media (max-width:900px){ .grid{grid-template-columns:1fr} }
+  .card{
+    background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px;
+    box-shadow:0 1px 0 rgba(0,0,0,.03);
+  }
+  .card h2{margin:0 0 8px; font-size:18px}
+  .card h3{margin:16px 0 8px; font-size:16px}
+  .category{border:1px dashed var(--border); border-radius:10px; padding:12px; margin:10px 0}
+  .q{display:grid; grid-template-columns: 1fr max-content; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid #f1f5f9}
+  .q:last-child{border-bottom:none}
+  .scale{display:flex; align-items:center; gap:6px; white-space:nowrap; color:var(--muted); font-size:12px}
+  .range{display:flex; gap:6px}
+  .range label{
+    padding:4px 8px; border:1px solid var(--border); border-radius:6px; cursor:pointer; user-select:none;
+  }
+  input[type="radio"]{display:none}
+  input[type="radio"]:checked + label{border-color:var(--accent); box-shadow:0 0 0 2px color-mix(in srgb, var(--accent) 20%, transparent); }
+  .toolbar{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px}
+  button{
+    border:1px solid var(--border); background:#fff; padding:8px 12px; border-radius:10px; cursor:pointer;
+    font-weight:600;
+  }
+  button.primary{background:var(--accent); color:#fff; border-color:var(--accent)}
+  button:disabled{opacity:.5; cursor:not-allowed}
+  .muted{color:var(--muted); font-size:13px}
+  canvas{width:100% !important; height:auto !important}
+  .legend{display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:8px; margin-top:6px; font-size:13px; color:var(--muted)}
+  @media (max-width:560px){ .legend{grid-template-columns:1fr} }
+  footer{max-width:1100px; margin:0 auto; padding:12px; color:var(--muted); font-size:12px}
+  .kpis{display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin-top:8px}
+  .kpis .k{background:#f8fafc; border:1px solid var(--border); border-radius:10px; padding:8px; text-align:center}
+  .k .name{font-weight:700; font-size:12px}
+  .k .val{font-size:18px}
+</style>
+</head>
+<body>
+<header>
+  <h1>七つの大罪 レーダーチャート診断 <small>（自己評価・研究/教育用途）</small></h1>
+</header>
+
+<main>
+  <div class="grid">
+    <!-- 左：質問票 -->
+    <section class="card">
+      <h2>質問に回答してください</h2>
+      <p class="muted">各項目は<strong>1（全く当てはまらない）〜 5（非常に当てはまる）</strong>で自己評価してください。各カテゴリ3問、合計21問です。</p>
+
+      <form id="quiz"></form>
+
+      <div class="toolbar">
+        <button type="button" class="primary" id="calcBtn">採点してレーダーチャート表示</button>
+        <button type="button" id="resetBtn">全てリセット</button>
+        <button type="button" id="exportPngBtn" disabled>PNG保存</button>
+        <button type="button" id="saveJsonBtn">JSON保存</button>
+        <button type="button" id="loadJsonBtn">JSON読込</button>
+        <input type="file" id="jsonFile" accept="application/json" style="display:none" />
+      </div>
+      <p class="muted">※入力は自動でブラウザ（端末）内に保存されます。研究・診療目的で用いる場合は各施設の倫理・プライバシーポリシーに従ってください。</p>
+    </section>
+
+    <!-- 右：結果とチャート -->
+    <section class="card">
+      <h2>結果</h2>
+      <div class="kpis" id="kpis"></div>
+      <canvas id="radar" aria-label="七つの大罪レーダーチャート" role="img"></canvas>
+      <div class="legend">
+        <div>スコアは0〜100に正規化（1→0、5→100）。</div>
+        <div>高スコアは該当傾向が<strong>強い</strong>ことを示します。</div>
+      </div>
+      <h3>簡易インサイト</h3>
+      <div id="insight" class="muted">採点するとここに所見が表示されます。</div>
+    </section>
+  </div>
+</main>
+
+<footer>
+  © 2025 七つの大罪レーダー | 本ツールは医療的診断を提供するものではありません。自己理解・教育・研究用途を想定しています。
+</footer>
+
+<script>
+/** ------------------------
+ * 設定
+ * -----------------------*/
+const CATEGORIES = [
+  { key: "pride",   name: "傲慢",   desc: "自己を過度に高く評価し他者を見下す傾向" },
+  { key: "greed",   name: "強欲",   desc: "富・権力・名誉を過度に求める傾向" },
+  { key: "envy",    name: "嫉妬",   desc: "他者の成功や幸福を妬む傾向" },
+  { key: "wrath",   name: "憤怒",   desc: "理性を失うほど怒りを募らせる傾向" },
+  { key: "lust",    name: "色欲",   desc: "性的欲望に過度に支配される傾向" },
+  { key: "gluttony",name: "暴食",   desc: "食や飲みに対して過度に耽る傾向" },
+  { key: "sloth",   name: "怠惰",   desc: "善い行い・責務を先延ばしにする傾向" },
+];
+
+const QUESTIONS = {
+  pride: [
+    "他人の助言より自分の判断を優先しがちだ。",
+    "自分は平均より有能だと頻繁に感じる。",
+    "謝罪や非を認めるのが苦手だ。"
+  ],
+  greed: [
+    "お金や成果を得ても、すぐに次の獲得を考える。",
+    "損得勘定で物事を判断しがちだ。",
+    "評価や称賛を強く求める。"
+  ],
+  envy: [
+    "SNSで他人の成功を見ると気分が沈む。",
+    "同僚の昇進・表彰に複雑な感情を抱くことが多い。",
+    "自分より恵まれた人に苛立ちを感じる。"
+  ],
+  wrath: [
+    "小さな出来事で強くイラつくことがある。",
+    "過去に対して復讐心が消えにくい。",
+    "運転や行列などで怒りを抑えにくい。"
+  ],
+  lust: [
+    "仕事中や学業中に性的な空想で注意が逸れることがある。",
+    "出会い系／アダルトコンテンツを衝動的に消費しがちだ。",
+    "相手の同意や尊厳より自分の欲求を優先しそうになる。"
+  ],
+  gluttony: [
+    "満腹でもさらに食べたり飲んだりすることがある。",
+    "ストレス時に過食・過飲に走りやすい。",
+    "栄養バランスより即時の満足を優先しがちだ。"
+  ],
+  sloth: [
+    "すべきことを後回しにして罪悪感を抱くことが多い。",
+    "目標に着手するまでに無駄な時間を費やしがちだ。",
+    "健康や学習など長期的益の行動を継続できない。"
+  ]
+};
+
+const STORAGE_KEY = "seven_sins_quiz_v1";
+
+/** ------------------------
+ * UI生成
+ * -----------------------*/
+const quizEl = document.getElementById("quiz");
+function buildQuiz() {
+  quizEl.innerHTML = "";
+  CATEGORIES.forEach(cat => {
+    const wrap = document.createElement("section");
+    wrap.className = "category";
+    wrap.innerHTML = `<h3>${cat.name} <small class="muted">— ${cat.desc}</small></h3>`;
+    QUESTIONS[cat.key].forEach((text, idx) => {
+      const row = document.createElement("div");
+      row.className = "q";
+      const name = `${cat.key}_${idx}`;
+      const scale = `
+        <div class="scale">
+          <span>1</span><span>全く当てはまらない</span>〜<span>5</span><span>非常に当てはまる</span>
+        </div>`;
+      const radios = [1,2,3,4,5].map(v => {
+        const id = `${name}_${v}`;
+        return `
+          <input type="radio" name="${name}" id="${id}" value="${v}">
+          <label for="${id}">${v}</label>
+        `;
+      }).join("");
+      row.innerHTML = `
+        <div>${text}<div class="scale" aria-hidden="true"></div></div>
+        <div class="range" role="radiogroup" aria-label="${cat.name} 質問${idx+1}">
+          ${radios}
+        </div>
+      `;
+      wrap.appendChild(row);
+    });
+    quizEl.appendChild(wrap);
+  });
+}
+buildQuiz();
+
+/** ------------------------
+ * 入出力・計算
+ * -----------------------*/
+function readAnswers() {
+  const data = {};
+  CATEGORIES.forEach(cat => {
+    data[cat.key] = QUESTIONS[cat.key].map((_, idx) => {
+      const name = `${cat.key}_${idx}`;
+      const el = quizEl.querySelector(`input[name="${name}"]:checked`);
+      return el ? Number(el.value) : null;
+    });
+  });
+  return data;
+}
+
+function isComplete(data){
+  return Object.values(data).every(arr => arr.every(v => v !== null));
+}
+
+function computeScores(data){
+  // 各カテゴリ平均（1〜5）→ 0〜100に線形正規化
+  const scores = {};
+  CATEGORIES.forEach(cat => {
+    const avg = data[cat.key].reduce((a,b)=>a+b,0) / data[cat.key].length; // 1〜5
+    const norm = Math.round(((avg - 1) / 4) * 100); // 0〜100
+    scores[cat.key] = { avg, norm };
+  });
+  return scores;
+}
+
+function toArrayInOrder(scores){
+  return CATEGORIES.map(cat => scores[cat.key].norm);
+}
+
+/** ------------------------
+ * 保存/読込（自動）
+ * -----------------------*/
+function saveToLocal(){
+  const data = readAnswers();
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }catch(e){}
+}
+function loadFromLocal(){
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if(!raw) return;
+  try{
+    const data = JSON.parse(raw);
+    Object.entries(data).forEach(([key, arr])=>{
+      if(!Array.isArray(arr)) return;
+      arr.forEach((v, idx)=>{
+        if(v==null) return;
+        const name = `${key}_${idx}`;
+        const el = document.getElementById(`${name}_${v}`);
+        if(el) el.checked = true;
+      });
+    });
+  }catch(e){}
+}
+quizEl.addEventListener("change", saveToLocal);
+loadFromLocal();
+
+/** ------------------------
+ * チャート描画
+ * -----------------------*/
+let radarChart = null;
+const ctx = document.getElementById("radar");
+
+function drawChart(scores){
+  const labels = CATEGORIES.map(c => c.name);
+  const data = toArrayInOrder(scores);
+  if(radarChart){ radarChart.destroy(); }
+  radarChart = new Chart(ctx, {
+    type: "radar",
+    data: {
+      labels,
+      datasets: [{
+        label: "スコア（0-100）",
+        data,
+        pointRadius: 3,
+        pointHoverRadius: 5,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      scales: {
+        r: {
+          min: 0, max: 100, ticks: { stepSize: 20 },
+          angleLines: { color: "#e2e8f0" },
+          grid: { color: "#e2e8f0" },
+          pointLabels: { font: { size: 12 } }
+        }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks:{
+            label: (ctx)=> `${ctx.formattedValue}`
+          }
+        }
+      }
+    }
+  });
+  document.getElementById("exportPngBtn").disabled = false;
+}
+
+/** ------------------------
+ * KPIと所見
+ * -----------------------*/
+function renderKPIs(scores){
+  const wrap = document.getElementById("kpis");
+  wrap.innerHTML = "";
+  CATEGORIES.forEach(cat=>{
+    const {avg, norm} = scores[cat.key];
+    const div = document.createElement("div");
+    div.className = "k";
+    div.innerHTML = `
+      <div class="name">${cat.name}</div>
+      <div class="val">${norm}</div>
+      <div class="muted">平均 ${avg.toFixed(1)} / 5</div>
+    `;
+    wrap.appendChild(div);
+  });
+}
+
+function renderInsight(scores){
+  const arr = CATEGORIES.map(c => ({ name:c.name, v: scores[c.key].norm }));
+  arr.sort((a,b)=> b.v - a.v);
+  const top = arr.slice(0,2).map(x => `${x.name}（${x.v}）`).join("・");
+  const low = arr.slice(-2).map(x => `${x.name}（${x.v}）`).join("・");
+  const insight = document.getElementById("insight");
+  const mean = Math.round(arr.reduce((a,b)=>a+b.v,0)/arr.length);
+  insight.innerHTML =
+    `全体平均は<strong>${mean}</strong>点。相対的に強い傾向：<strong>${top}</strong>、弱い傾向：<strong>${low}</strong>。` +
+    `スコアは状況・体調・ストレスで変動します。時間をおいて再評価し、変化を観察するのがおすすめです。`;
+}
+
+/** ------------------------
+ * PNG/JSON
+ * -----------------------*/
+document.getElementById("exportPngBtn").addEventListener("click", ()=>{
+  if(!radarChart) return;
+  const url = radarChart.toBase64Image();
+  const a = document.createElement("a");
+  const ts = new Date().toISOString().replace(/[:.]/g,"-");
+  a.href = url;
+  a.download = `seven-sins-radar-${ts}.png`;
+  a.click();
+});
+
+document.getElementById("saveJsonBtn").addEventListener("click", ()=>{
+  const data = readAnswers();
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:"application/json"});
+  const a = document.createElement("a");
+  const ts = new Date().toISOString().replace(/[:.]/g,"-");
+  a.href = URL.createObjectURL(blob);
+  a.download = `seven-sins-answers-${ts}.json`;
+  a.click();
+});
+
+document.getElementById("loadJsonBtn").addEventListener("click", ()=>{
+  document.getElementById("jsonFile").click();
+});
+document.getElementById("jsonFile").addEventListener("change", (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    try{
+      const data = JSON.parse(reader.result);
+      // 既存チェックを一旦クリア
+      quizEl.querySelectorAll('input[type="radio"]:checked').forEach(el=> el.checked = false);
+      Object.entries(data).forEach(([key, arr])=>{
+        if(!QUESTIONS[key]) return;
+        arr.forEach((v, idx)=>{
+          const el = document.getElementById(`${key}_${idx}_${v}`);
+          if(el) el.checked = true;
+        });
+      });
+      saveToLocal();
+    }catch(err){
+      alert("JSONの形式が不正です。");
+    }
+  };
+  reader.readAsText(file);
+});
+
+/** ------------------------
+ * 採点とリセット
+ * -----------------------*/
+document.getElementById("calcBtn").addEventListener("click", ()=>{
+  const data = readAnswers();
+  if(!isComplete(data)){
+    alert("未回答があります。全ての質問に回答してください。");
+    return;
+  }
+  const scores = computeScores(data);
+  renderKPIs(scores);
+  drawChart(scores);
+  renderInsight(scores);
+});
+
+document.getElementById("resetBtn").addEventListener("click", ()=>{
+  if(!confirm("全回答をリセットしますか？")){
+    return;
+  }
+  quizEl.querySelectorAll('input[type="radio"]:checked').forEach(el=> el.checked=false);
+  try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
+  document.getElementById("kpis").innerHTML = "";
+  document.getElementById("insight").textContent = "採点するとここに所見が表示されます。";
+  if(radarChart){ radarChart.destroy(); radarChart = null; }
+  document.getElementById("exportPngBtn").disabled = true;
+});
+</script>
+</body>
+</html>
