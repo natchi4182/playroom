@@ -86,6 +86,7 @@
         <button type="button" id="exportPngBtn" disabled>PNG保存</button>
         <button type="button" id="saveJsonBtn">JSON保存</button>
         <button type="button" id="loadJsonBtn">JSON読込</button>
+        <button type="button" id="shuffleBtn">並び替え（再シャッフル）</button>
         <input type="file" id="jsonFile" accept="application/json" style="display:none" />
       </div>
       <p class="muted">※入力は自動でブラウザに保存。研究・診療で用いる場合は各施設の倫理・プライバシー指針に従ってください。</p>
@@ -152,428 +153,187 @@ const QUESTIONS = {
 };
 const STORAGE_KEY = "seven_sins_quiz_v2";
 
-/* ========= UI生成 ========= */
+/* ========= UI生成（ランダム表示対応） ========= */
+const STORAGE_KEY = "seven_sins_quiz_v3"; // v3（ランダム対応）
+
+// 1) qidのフラット化
+function makeItemList(){
+  // {qid, catKey, catName, idx, text}
+  const items = [];
+  CATEGORIES.forEach(cat=>{
+    QUESTIONS[cat.key].forEach((text, idx)=>{
+      items.push({ qid:`${cat.key}_${idx}`, catKey:cat.key, catName:cat.name, idx, text });
+    });
+  });
+  return items;
+}
+
+// 2) シャッフル（Fisher–Yates）
+function shuffleInPlace(arr){
+  for(let i=arr.length-1; i>0; i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]] = [arr[j],arr[i]];
+  }
+  return arr;
+}
+
+// 3) 描画：カテゴリ名は出さず、連番＋設問文＋5段階
+let CURRENT_ITEMS = []; // 現在の表示順
 const quizEl = document.getElementById("quiz");
-function buildQuiz() {
+
+function buildQuizRandom(){
+  CURRENT_ITEMS = makeItemList();
+  shuffleInPlace(CURRENT_ITEMS);
+  renderQuizFromItems();
+  // 既存保存を復元
+  applySavedAnswers();
+}
+
+function renderQuizFromItems(){
   quizEl.innerHTML = "";
-  CATEGORIES.forEach(cat => {
-    const wrap = document.createElement("section");
-    wrap.className = "category";
-    wrap.innerHTML = `<h3>${cat.name} <small class="muted">— ${cat.desc}</small></h3>`;
-    QUESTIONS[cat.key].forEach((text, idx) => {
-      const row = document.createElement("div");
-      row.className = "q";
-      const name = `${cat.key}_${idx}`;
-      const radios = [1,2,3,4,5].map(v => {
-        const id = `${name}_${v}`;
-        return `
-          <input type="radio" name="${name}" id="${id}" value="${v}">
-          <label for="${id}">${v}</label>
-        `;
-      }).join("");
-      row.innerHTML = `
-        <div>${text}<div class="scale" aria-hidden="true"><span>1</span> 全く当てはまらない 〜 <span>5</span> 非常に当てはまる</div></div>
-        <div class="range" role="radiogroup" aria-label="${cat.name} 質問${idx+1}">
+  CURRENT_ITEMS.forEach((it, i)=>{
+    const row = document.createElement("section");
+    row.className = "category";
+    const name = it.qid; // ラジオのnameはqid（順番変わっても不変）
+    const radios = [1,2,3,4,5].map(v=>{
+      const id = `${name}_${v}`;
+      return `
+        <input type="radio" name="${name}" id="${id}" value="${v}">
+        <label for="${id}">${v}</label>
+      `;
+    }).join("");
+    row.innerHTML = `
+      <div class="q" style="border-bottom:none">
+        <div><strong>Q${i+1}.</strong> ${it.text}
+          <div class="scale" aria-hidden="true"><span>1</span> 全く当てはまらない 〜 <span>5</span> 非常に当てはまる</div>
+        </div>
+        <div class="range" role="radiogroup" aria-label="Q${i+1}">
           ${radios}
         </div>
-      `;
-      wrap.appendChild(row);
-    });
-    quizEl.appendChild(wrap);
+      </div>
+    `;
+    quizEl.appendChild(row);
   });
 }
-buildQuiz();
 
-/* ========= 入出力・保存 ========= */
-function readAnswers() {
-  const data = {};
-  CATEGORIES.forEach(cat => {
-    data[cat.key] = QUESTIONS[cat.key].map((_, idx) => {
-      const name = `${cat.key}_${idx}`;
-      const el = quizEl.querySelector(`input[name="${name}"]:checked`);
-      return el ? Number(el.value) : null;
-    });
+/* ========= 入出力・保存（qidベース） ========= */
+function readAnswers(){
+  // 返り値は { qid: 1..5 or null }
+  const out = {};
+  CURRENT_ITEMS.forEach(it=>{
+    const el = quizEl.querySelector(`input[name="${it.qid}"]:checked`);
+    out[it.qid] = el ? Number(el.value) : null;
   });
-  return data;
+  return out;
 }
-function isComplete(data){
-  return Object.values(data).every(arr => arr.every(v => v !== null));
+function isCompleteByQid(map){
+  return Object.values(map).every(v => v !== null);
 }
-function saveToLocal(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(readAnswers())); }catch(e){} }
-function loadFromLocal(){
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if(!raw) return;
+function saveToLocal(){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(readAnswers())); }catch(e){}
+}
+function loadFromLocalRaw(){
   try{
-    const data = JSON.parse(raw);
-    Object.entries(data).forEach(([key, arr])=>{
-      if(!Array.isArray(arr)) return;
-      arr.forEach((v, idx)=>{
-        if(v==null) return;
-        const el = document.getElementById(`${key}_${idx}_${v}`);
-        if(el) el.checked = true;
-      });
-    });
-  }catch(e){}
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  }catch(e){ return null; }
+}
+function applySavedAnswers(){
+  const saved = loadFromLocalRaw();
+  if(!saved) return;
+  CURRENT_ITEMS.forEach(it=>{
+    const v = saved[it.qid];
+    if(v==null) return;
+    const el = document.getElementById(`${it.qid}_${v}`);
+    if(el) el.checked = true;
+  });
 }
 quizEl.addEventListener("change", saveToLocal);
-loadFromLocal();
 
-/* ========= スコア計算 ========= */
-function computeScores(data){
+/* ========= スコア計算（qid→カテゴリへ逆集計） ========= */
+function computeScoresFromQidMap(qMap){
+  // {catKey: [ three values 1..5 ]} を組み直し
+  const bucket = {};
+  CATEGORIES.forEach(c=> bucket[c.key] = []);
+  // qid: pride_0 のような形式
+  Object.entries(qMap).forEach(([qid, v])=>{
+    if(v==null) return;
+    const catKey = qid.split("_")[0];
+    if(bucket[catKey]) bucket[catKey].push(v);
+  });
+  // 3問揃っていない場合はnullで埋める（未回答扱い）
+  CATEGORIES.forEach(c=>{
+    while(bucket[c.key].length < QUESTIONS[c.key].length) bucket[c.key].push(null);
+  });
+
+  // 完全性チェック
+  const complete = Object.values(bucket).every(arr => arr.every(v => v !== null));
+  if(!complete) return { complete:false, scores:null };
+
+  // 平均→0-100正規化
   const scores = {};
-  CATEGORIES.forEach(cat => {
-    const avg = data[cat.key].reduce((a,b)=>a+b,0) / data[cat.key].length; // 1〜5
-    const norm = Math.round(((avg - 1) / 4) * 100); // 0〜100
+  CATEGORIES.forEach(cat=>{
+    const arr = bucket[cat.key];
+    const avg = arr.reduce((a,b)=>a+b,0) / arr.length; // 1..5
+    const norm = Math.round(((avg - 1)/4)*100);
     scores[cat.key] = { avg, norm };
   });
-  return scores;
+  return { complete:true, scores };
 }
-function toArrayInOrder(scores){ return CATEGORIES.map(cat => scores[cat.key].norm); }
 
-/* ========= Chart ========= */
-let radarChart = null;
-const ctx = document.getElementById("radar");
-function drawChart(scores){
-  const labels = CATEGORIES.map(c => c.name);
-  const data = toArrayInOrder(scores);
-  if(radarChart){ radarChart.destroy(); }
-  radarChart = new Chart(ctx, {
-    type: "radar",
-    data: { labels,
-      datasets: [{ label:"スコア（0-100）", data, pointRadius:3, pointHoverRadius:5, fill:true }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: true,
-      scales: {
-        r: {
-          min:0, max:100, ticks:{stepSize:20},
-          angleLines:{color:"#e2e8f0"}, grid:{color:"#e2e8f0"},
-          pointLabels:{font:{size:12}}
-        }
-      },
-      plugins: { legend:{display:false},
-        tooltip:{ callbacks:{ label:(ctx)=> `${ctx.formattedValue}` } }
-      }
-    }
+/* ========= 初期ロード & 再シャッフル ========= */
+buildQuizRandom();
+document.getElementById("shuffleBtn").addEventListener("click", ()=>{
+  // 今の回答を保持したまま並び替え
+  const saved = loadFromLocalRaw() || {};
+  buildQuizRandom();
+  // 直前の保存を反映（applySavedAnswers内でも復元するが、念押し）
+  CURRENT_ITEMS.forEach(it=>{
+    const v = saved[it.qid];
+    if(v==null) return;
+    const el = document.getElementById(`${it.qid}_${v}`);
+    if(el) el.checked = true;
   });
-  document.getElementById("exportPngBtn").disabled = false;
-}
-
-/* ========= KPI/所見 ========= */
-function renderKPIs(scores){
-  const wrap = document.getElementById("kpis");
-  wrap.innerHTML = "";
-  CATEGORIES.forEach(cat=>{
-    const {avg, norm} = scores[cat.key];
-    const div = document.createElement("div");
-    div.className = "k";
-    div.innerHTML = `
-      <div class="name">${cat.name}</div>
-      <div class="val">${norm}</div>
-      <div class="muted">平均 ${avg.toFixed(1)} / 5</div>
-    `;
-    wrap.appendChild(div);
-  });
-}
-
-/* ========= 親和性・タイプ判定 ========= */
-const AFF = { // 親和性 0-3
-  pride:{greed:3, wrath:2, envy:2, lust:0, gluttony:0, sloth:0},
-  greed:{pride:3, envy:2, wrath:1, lust:0, gluttony:0, sloth:0},
-  envy:{greed:2, wrath:3, pride:2, lust:0, gluttony:0, sloth:0},
-  wrath:{envy:3, pride:2, greed:1, lust:0, gluttony:0, sloth:0},
-  lust:{gluttony:3, sloth:1, pride:0, greed:0, envy:0, wrath:0},
-  gluttony:{lust:3, sloth:2, pride:0, greed:0, envy:0, wrath:0},
-  sloth:{gluttony:2, lust:1, pride:0, greed:0, envy:0, wrath:0},
-};
-function entropyFrom(values){
-  const sum = values.reduce((a,b)=>a+b,0) || 1;
-  const p = values.map(v => Math.max(v,0)/sum);
-  return -p.reduce((h,pi)=> h + (pi>0 ? pi * Math.log(pi) : 0), 0); // 0..log7
-}
-function affinity(a,b){ return (AFF[a] && AFF[a][b]) || (AFF[b] && AFF[b][a]) || 0; }
-
-function classify(scores){
-  const arr = CATEGORIES.map(c => ({key:c.key, name:c.name, v:scores[c.key].norm}));
-  arr.sort((x,y)=> y.v - x.v);
-  const [t1,t2,t3] = arr;
-  const margin = t1.v - t2.v;
-  const tri_margin = t1.v - (t3 ? t3.v : 0);
-  const H = entropyFrom(arr.map(x=>x.v));
-  const Hmax = Math.log(arr.length);
-
-  let confidence = (margin/20) * (1 - (H/Hmax));
-  confidence = Math.max(0, Math.min(1, confidence));
-  const confPct = Math.round(confidence * 100);
-
-  const SOLO_GAP = 8;
-  const TRI_GAP  = 10;
-  const PAIR_AFF = 2;
-  const HIGH_ENT = 1.8;
-
-  let type = "", detail = "", typeKey = "";
-
-  if (margin >= SOLO_GAP) {
-    type = `${t1.name}型`; typeKey = type;
-    detail = `最上位が明確（差${margin}）。${t1.name}の傾向が優勢。`;
-  } else if (affinity(t1.key, t2.key) >= PAIR_AFF) {
-    const pair = `${t1.name}×${t2.name}`;
-    const map = {
-      "強欲×傲慢":"支配/名誉追求型","傲慢×強欲":"支配/名誉追求型",
-      "嫉妬×憤怒":"怨恨/対抗型","憤怒×嫉妬":"怨恨/対抗型",
-      "色欲×暴食":"快楽ドライブ型","暴食×色欲":"快楽ドライブ型",
-      "暴食×怠惰":"自己制御ゆるみ型","怠惰×暴食":"自己制御ゆるみ型",
-      "傲慢×憤怒":"攻撃的自己正当化型","憤怒×傲慢":"攻撃的自己正当化型",
-      "嫉妬×強欲":"比較起点の獲得志向型","強欲×嫉妬":"比較起点の獲得志向型",
-    };
-    type = map[pair] || `${pair}（複合）`; typeKey = type;
-    detail = `上位2因子が接戦（差${margin}）かつ親和性が高い（${affinity(t1.key,t2.key)}）。`;
-  } else if (tri_margin < TRI_GAP) {
-    const set = new Set([t1.key,t2.key,t3.key]);
-    if (["pride","greed","envy"].every(k=>set.has(k))) {
-      type = "比較/ステータス志向型";
-    } else if (set.has("wrath") && set.has("envy")) {
-      type = "闘争/反応型";
-    } else if (["lust","gluttony","sloth"].some(k=>set.has(k))) {
-      type = "快楽/自己制御課題型";
-    } else {
-      type = "混成クラスタ型";
-    }
-    typeKey = type;
-    detail = "上位3つが近接しているためクラスタで判定。";
-  } else if (H > HIGH_ENT) {
-    type = "バランス/状況依存型"; typeKey = type;
-    detail = "全体が比較的均一で、状況により顔が変わるタイプ。";
-  } else {
-    type = `${t1.name}優勢・${t2.name}準優勢（混合）`; typeKey = "混合（汎用）";
-    detail = `上位が接戦（差${margin}）だが親和性は限定的（${affinity(t1.key,t2.key)}）。`;
-  }
-
-  return { type, typeKey, confidence: confPct, detail, top:[t1,t2,t3], all:arr, margin, tri_margin, H, Hmax };
-}
-
-/* ========= タイプ辞書（説明/動物/注意/相性） ========= */
-const TYPE_INFO = {
-  "傲慢型": {
-    desc:"自信家でカリスマ性があり、周囲を導く力を持つリーダー気質。",
-    animal:"🦁 ライオン",
-    advice:"他人の意見を軽視し孤立しやすい。意識的に傾聴と謝意を。",
-    good:"強欲型・怠惰型（実務推進/ペース調整）",
-    bad:"嫉妬型（価値観衝突が起きやすい）"
-  },
-  "強欲型": {
-    desc:"現実的で成果志向。物質・地位・成功への意欲が強い。",
-    animal:"🦅 鷹",
-    advice:"利益優先で関係が痩せがち。感謝・分配・寄付で循環を作る。",
-    good:"傲慢型・嫉妬型（方向付けと推進）",
-    bad:"怠惰型（ペース不一致）"
-  },
-  "嫉妬型": {
-    desc:"感受性が高く、他者の長所に敏感。競争心を成長に転化できる。",
-    animal:"🐈 猫",
-    advice:"比較で自己価値を失いやすい。マイ指標を設計し可視化を。",
-    good:"強欲型・憤怒型（目標と推進力の補完）",
-    bad:"傲慢型（承認の奪い合い）"
-  },
-  "憤怒型": {
-    desc:"正義感が強く、不正や理不尽を許さない闘士。",
-    animal:"🐯 トラ",
-    advice:"短期的爆発で関係を損なう。距離・深呼吸・書き出しで冷却。",
-    good:"嫉妬型・怠惰型（監査と緩衝）",
-    bad:"傲慢型（正当性を巡る対立）"
-  },
-  "色欲型": {
-    desc:"情熱的で感受性豊か。人間味ある魅力で場を活性化。",
-    animal:"🔥 フェニックス",
-    advice:"衝動で後悔しやすい。24時間ルール等の抑制スイッチを。",
-    good:"暴食型・怠惰型（快と休息の設計）",
-    bad:"傲慢型（境界線の侵食）"
-  },
-  "暴食型": {
-    desc:"感覚快楽に長け、空気を和ませるムードメーカー。",
-    animal:"🐼 パンダ",
-    advice:"節制が課題。睡眠・食事・運動のルーチン固定を最優先。",
-    good:"色欲型・怠惰型（情緒と休息の相乗）",
-    bad:"強欲型（スピード/成果圧）"
-  },
-  "怠惰型": {
-    desc:"穏やかでマイペース。無理をしないバランス感覚あり。",
-    animal:"🦥 ナマケモノ",
-    advice:"先延ばし対策に5分着手・チェックリスト・締切共有を。",
-    good:"暴食型・傲慢型（回復と舵取り）",
-    bad:"強欲型（速度要求がストレス）"
-  },
-
-  /* 二極・クラスタ・その他 */
-  "支配/名誉追求型":{
-    desc:"成果と地位への志向が強く、組織を牽引する推進力。",
-    animal:"🦅🦁 鷹×ライオン",
-    advice:"功績独占に見えない配慮を。成果の共有と称賛の分散を。",
-    good:"嫉妬型・怠惰型（緊張と緩和のバランス）",
-    bad:"憤怒型（正義×名誉の衝突）"
-  },
-  "怨恨/対抗型":{
-    desc:"理不尽への感度が高く、不公平を是正する戦闘力。",
-    animal:"🐯🐈 トラ×猫",
-    advice:"慢性的な対立構造に注意。ルール設計と第三者調停を活用。",
-    good:"怠惰型・暴食型（過熱の冷却）",
-    bad:"傲慢型（敵対構図が固定化）"
-  },
-  "快楽ドライブ型":{
-    desc:"情熱と感覚が原動力。創造性・人間味でチームを温める。",
-    animal:"🔥🐼 フェニックス×パンダ",
-    advice:"衝動制御と翌朝点検を習慣化。境界線と同意を明確に。",
-    good:"怠惰型（休息設計）・嫉妬型（客観視）",
-    bad:"傲慢型（価値観の押し付け）"
-  },
-  "自己制御ゆるみ型":{
-    desc:"快・休息を重視し心身の回復を作れるが、節度が課題。",
-    animal:"🐼🦥 パンダ×ナマケモノ",
-    advice:"環境で制御（買い置き制限・可視化）。朝の固定ルーチン。",
-    good:"傲慢型・強欲型（外部ドライブ）",
-    bad:"憤怒型（規律圧と反発）"
-  },
-  "攻撃的自己正当化型":{
-    desc:"強い自負と迅速な意思決定。危機対応力が高い。",
-    animal:"🦁🐯 ライオン×トラ",
-    advice:"異論排除に注意。悪魔の代弁者役を制度として置く。",
-    good:"怠惰型（緩衝）・嫉妬型（俯瞰）",
-    bad:"憤怒型（衝突の増幅）"
-  },
-  "比較起点の獲得志向型":{
-    desc:"他者比較を原動力に成果へ向かう実務派。",
-    animal:"🐈🦅 猫×鷹",
-    advice:"指標を内在化し、勝ち筋を“自分のゲーム”に再定義。",
-    good:"傲慢型（方向付け）・怠惰型（ペース調整）",
-    bad:"暴食型（リズム不一致）"
-  },
-  "比較/ステータス志向型":{
-    desc:"地位・評価・資源配分に敏感。戦略設計が得意。",
-    animal:"🦁🦅🐈",
-    advice:"功利性が過ぎると離反が生じる。透明性と分配設計を。",
-    good:"怠惰型・暴食型（人心の緩和）",
-    bad:"憤怒型（規範衝突）"
-  },
-  "闘争/反応型":{
-    desc:"不正検知と是正力が強い“監査エンジン”。",
-    animal:"🐯🐈",
-    advice:"短期の勝ち負けより長期の改善設計へ。冷却プロトコル必須。",
-    good:"怠惰型（冷却）・傲慢型（意思決定）",
-    bad:"強欲型（数字偏重摩擦）"
-  },
-  "快楽/自己制御課題型":{
-    desc:"創造性と親しみやすさ。チームの雰囲気を温める資質。",
-    animal:"🔥🐼🦥",
-    advice:"睡眠と血糖の安定が第一。デジタル制限と朝の散歩。",
-    good:"嫉妬型（俯瞰）・傲慢型（舵取り）",
-    bad:"強欲型（速度/成果圧）"
-  },
-  "混成クラスタ型":{
-    desc:"複数の傾向が同程度。場面ごとの役割スイッチが鍵。",
-    animal:"🧩",
-    advice:"場面別の“役割プリセット”を作る（推進/調停/創造など）。",
-    good:"状況適合の相手全般",
-    bad:"固定思考の強い相手"
-  },
-  "バランス/状況依存型":{
-    desc:"全体が均一で適応的。黒子としての調整力が高い。",
-    animal:"⚖️",
-    advice:"意思決定の遅延に注意。意思決定期限と基準を先に置く。",
-    good:"明確なドライバー（傲慢/強欲など）",
-    bad:"過剰な衝動/怒り"
-  },
-  "混合（汎用）":{
-    desc:"上位2因子が拮抗。状況で顔が切り替わるハイブリッド。",
-    animal:"🔀",
-    advice:"場面ごとに“主軸/副軸”を宣言。齟齬は事前共有で回避。",
-    good:"補完関係の相手（上位因子の逆を持つ人）",
-    bad:"同質で競合する相手"
-  }
-};
-
-/* ========= 相性の出し分け ========= */
-function pickCompatibility(typeKey){
-  const info = TYPE_INFO[typeKey] || {};
-  return {
-    good: info.good || "—",
-    bad:  info.bad  || "—"
-  };
-}
-
-/* ========= レポート描画 ========= */
-function renderInsight(scores){
-  const cls = classify(scores);
-  // バッジ＆自信度バー
-  const badge = document.getElementById("typeBadge");
-  badge.textContent = `タイプ：${cls.type}`;
-  document.getElementById("confFill").style.width = `${cls.confidence}%`;
-  document.getElementById("confVal").textContent = `${cls.confidence}%`;
-
-  const info = TYPE_INFO[cls.typeKey] || {};
-  const topTxt = cls.top.slice(0,2).map(x=>`${x.name}（${x.v}）`).join("・");
-  const lowTxt = cls.all.slice(-2).map(x=>`${x.name}（${x.v}）`).join("・");
-
-  const insight = document.getElementById("insight");
-  insight.innerHTML = `
-    <div><strong>総評：</strong>${cls.detail} 自信度 ${cls.confidence}%。</div>
-    <p><b>1. あなたはこんな人です：</b>${info.desc || "分析中…"}</p>
-    <p><b>2. 動物に例えると：</b>${info.animal || "—"}</p>
-    <p><b>3. 注意すべき点：</b>${info.advice || "—"}</p>
-    <p class="muted">上位：${topTxt} ／ 下位：${lowTxt}</p>
-  `;
-
-  // 相性
-  const compat = pickCompatibility(cls.typeKey);
-  const compatEl = document.getElementById("compatibility");
-  compatEl.innerHTML = `
-    <div class="pair">
-      <span class="pill ok">相性が良い：${compat.good}</span>
-      <span class="pill ng">相性が悪い：${compat.bad}</span>
-    </div>
-  `;
-}
-
-/* ========= PNG/JSON ========= */
-document.getElementById("exportPngBtn").addEventListener("click", ()=>{
-  if(!radarChart) return;
-  const url = radarChart.toBase64Image();
-  const a = document.createElement("a");
-  const ts = new Date().toISOString().replace(/[:.]/g,"-");
-  a.href = url; a.download = `seven-sins-radar-${ts}.png`; a.click();
 });
-document.getElementById("saveJsonBtn").addEventListener("click", ()=>{
+
+/* ========= KPI/所見の呼び出しは既存関数を使用 ========= */
+// 既存の renderKPIs(scores), drawChart(scores), renderInsight(scores) をそのまま利用
+
+/* ========= PNG/JSON（既存の処理を流用するため、保存/読込をqidマップに変更） ========= */
+document.getElementById("saveJsonBtn").onclick = ()=>{
   const blob = new Blob([JSON.stringify(readAnswers(), null, 2)], {type:"application/json"});
   const a = document.createElement("a");
   const ts = new Date().toISOString().replace(/[:.]/g,"-");
-  a.href = URL.createObjectURL(blob); a.download = `seven-sins-answers-${ts}.json`; a.click();
-});
-document.getElementById("loadJsonBtn").addEventListener("click", ()=> document.getElementById("jsonFile").click());
+  a.href = URL.createObjectURL(blob);
+  a.download = `seven-sins-answers-${ts}.json`;
+  a.click();
+};
+document.getElementById("loadJsonBtn").onclick = ()=> document.getElementById("jsonFile").click();
 document.getElementById("jsonFile").addEventListener("change", (e)=>{
   const file = e.target.files[0]; if(!file) return;
   const reader = new FileReader();
   reader.onload = ()=>{
     try{
-      const data = JSON.parse(reader.result);
-      quizEl.querySelectorAll('input[type="radio"]:checked').forEach(el=> el.checked = false);
-      Object.entries(data).forEach(([key, arr])=>{
-        if(!QUESTIONS[key]) return;
-        arr.forEach((v, idx)=>{
-          const el = document.getElementById(`${key}_${idx}_${v}`);
-          if(el) el.checked = true;
-        });
+      const data = JSON.parse(reader.result); // {qid: value}
+      // 既存チェックを一旦クリア
+      quizEl.querySelectorAll('input[type="radio"]:checked').forEach(el=> el.checked=false);
+      // 反映（UI上に存在していないqidは無視）
+      Object.entries(data).forEach(([qid, v])=>{
+        const el = document.getElementById(`${qid}_${v}`);
+        if(el) el.checked = true;
       });
-      saveToLocal();
+      // 保存
+      try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }catch(e){}
     }catch(err){ alert("JSONの形式が不正です。"); }
   };
   reader.readAsText(file);
 });
 
-/* ========= 採点とリセット ========= */
+/* ========= 採点とリセット（計算部をqidマップ対応へ） ========= */
 document.getElementById("calcBtn").addEventListener("click", ()=>{
-  const data = readAnswers();
-  if(!isComplete(data)){ alert("未回答があります。全ての質問に回答してください。"); return; }
-  const scores = computeScores(data);
+  const qMap = readAnswers();
+  const { complete, scores } = computeScoresFromQidMap(qMap);
+  if(!complete){ alert("未回答があります。全ての質問に回答してください。"); return; }
   renderKPIs(scores);
   drawChart(scores);
   renderInsight(scores);
@@ -589,6 +349,9 @@ document.getElementById("resetBtn").addEventListener("click", ()=>{
   document.getElementById("confVal").textContent = "0%";
   if(radarChart){ radarChart.destroy(); radarChart = null; }
   document.getElementById("exportPngBtn").disabled = true;
+
+  // 並び順もリセット（新しくシャッフル）
+  buildQuizRandom();
 });
 
 /* ========= 初期表示：空グラフ ========= */
