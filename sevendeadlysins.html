@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>七つの大罪 レーダーチャート診断（ランダム版・完全）</title>
-<meta name="description" content="七つの大罪（傲慢・強欲・嫉妬・憤怒・色欲・暴食・怠惰）を質問でスコア化。ランダム順表示＋レーダーチャート＋タイプ診断（動物・注意点・相性）を表示。" />
+<title>七つの大罪 レーダーチャート診断（ランダム版・完全＋職業）</title>
+<meta name="description" content="七つの大罪を質問でスコア化。ランダム順表示＋レーダーチャート＋タイプ診断（動物・注意点・相性・職業）を表示。" />
 <link rel="preconnect" href="https://cdn.jsdelivr.net" />
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <!-- Chart.js v4（SRIなしで確実読込） -->
@@ -12,26 +12,17 @@
 <style>
   :root{
     --bg:#f7f8fb; --fg:#0f172a; --muted:#64748b; --accent:#2563eb; --card:#ffffff; --border:#e5e7eb;
-    --good:#16a34a; --bad:#dc2626; --warn:#d97706;
   }
   html,body{height:100%}
-  body{
-    margin:0; background:var(--bg); color:var(--fg);
-    font-family: "Meiryo UI","Yu Gothic UI","Hiragino Kaku Gothic ProN", system-ui, -apple-system, sans-serif;
-    line-height:1.6;
-  }
+  body{margin:0; background:var(--bg); color:var(--fg);
+    font-family:"Meiryo UI","Yu Gothic UI","Hiragino Kaku Gothic ProN",system-ui,-apple-system,sans-serif; line-height:1.6;}
   header{padding:12px 16px; background:var(--card); border-bottom:1px solid var(--border); position:sticky; top:0; z-index:10}
   header h1{margin:0; font-size:clamp(18px,2.6vw,22px)}
   header small{color:var(--muted)}
   main{max-width:1200px; margin:16px auto; padding:0 12px 56px}
   .grid{display:grid; grid-template-columns:1fr 1fr; gap:16px}
   @media (max-width:980px){ .grid{grid-template-columns:1fr} }
-  .card{
-    background:var(--card); border:1px solid var(--border); border-radius:14px; padding:16px 16px 18px;
-    box-shadow:0 1px 0 rgba(0,0,0,.03);
-  }
-  .card h2{margin:0 0 10px; font-size:18px}
-  .card h3{margin:14px 0 8px; font-size:16px}
+  .card{background:var(--card); border:1px solid var(--border); border-radius:14px; padding:16px 16px 18px; box-shadow:0 1px 0 rgba(0,0,0,.03)}
   .category{border:1px dashed var(--border); border-radius:12px; padding:12px; margin:10px 0; background:#fcfdff}
   .q{display:grid; grid-template-columns:1fr max-content; align-items:center; gap:10px; padding:8px 0; border-bottom:none}
   .range{display:flex; gap:6px}
@@ -40,17 +31,14 @@
   input[type="radio"]:checked + label{border-color:var(--accent); box-shadow:0 0 0 2px color-mix(in srgb, var(--accent) 22%, transparent);}
   .scale{display:flex; align-items:center; gap:6px; white-space:nowrap; color:var(--muted); font-size:12px}
   .toolbar{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px}
-  button{
-    border:1px solid var(--border); background:#fff; padding:9px 12px; border-radius:10px; cursor:pointer;
-    font-weight:700;
-  }
+  button{border:1px solid var(--border); background:#fff; padding:9px 12px; border-radius:10px; cursor:pointer; font-weight:700}
   button.primary{background:var(--accent); color:#fff; border-color:var(--accent)}
   button:disabled{opacity:.55; cursor:not-allowed}
   .muted{color:var(--muted); font-size:13px}
   canvas{width:100% !important; height:auto !important}
   .kpis{display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin-top:8px}
   @media (max-width:720px){ .kpis{grid-template-columns:repeat(3,1fr)} }
-  @media (max-width:480px){ .kpis{grid-template-columns:repeat(2,1,1fr)} }
+  @media (max-width:480px){ .kpis{grid-template-columns:repeat(2,1fr)} }
   .k{background:#f8fafc; border:1px solid var(--border); border-radius:10px; padding:8px; text-align:center}
   .k .name{font-weight:800; font-size:12px}
   .k .val{font-size:20px}
@@ -64,7 +52,12 @@
   .pill{border:1px solid var(--border); border-radius:999px; padding:4px 10px; font-weight:700}
   .ok{background:#ecfdf5; border-color:#bbf7d0; color:#065f46}
   .ng{background:#fef2f2; border-color:#fecaca; color:#7f1d1d}
-  footer{max-width:1200px; margin:0 auto; padding:12px; color:var(--muted); font-size:12px}
+  details.guide summary{cursor:pointer; list-style:none}
+  details.guide summary::-webkit-details-marker{display:none}
+  details.guide{margin:4px 0 10px}
+  details.guide .box{border:1px dashed var(--border); border-radius:8px; padding:8px; background:#f9fafb}
+  .jobs{margin-top:6px}
+  .jobs b{display:block; margin-top:4px}
 </style>
 </head>
 <body>
@@ -103,6 +96,16 @@
         <div class="conf-bar" aria-label="自信度"><i id="confFill"></i></div>
         <div id="confVal" style="min-width:42px;text-align:right" class="muted">0%</div>
       </div>
+      <!-- ▼ 自信度の説明（追加） -->
+      <details class="guide">
+        <summary class="muted">自信度の見方（クリックで開く）</summary>
+        <div class="box muted">
+          自信度は「上位スコアの差」と「全体のばらけ具合（エントロピー）」から推定した目安です。<br>
+          ・上位差が大きいほど、特定タイプに収束 → 自信度は上がります。<br>
+          ・全体が均一（ばらけが大きい）ほど、タイプ断定は難しい → 自信度は下がります。<br>
+          体調・状況で変動します。定期的に受検して推移を見るのがおすすめです。
+        </div>
+      </details>
 
       <div class="kpis" id="kpis"></div>
       <canvas id="radar" aria-label="七つの大罪レーダーチャート" role="img"></canvas>
@@ -153,7 +156,7 @@ const QUESTIONS = {
 };
 
 /* ========= ランダム質問UI ========= */
-const STORAGE_KEY = "seven_sins_quiz_v3"; // ランダム対応版
+const STORAGE_KEY = "seven_sins_quiz_v4"; // v4（職業・自信度説明版）
 let CURRENT_ITEMS = []; // { qid, catKey, catName, idx, text }
 const quizEl = document.getElementById("quiz");
 
@@ -168,8 +171,8 @@ function makeItemList(){
 }
 function shuffleInPlace(arr){
   for(let i=arr.length-1;i>0;i--){
-    const j = Math.floor(Math.random()*(i+1));
-    [arr[i],arr[j]] = [arr[j],arr[i]];
+    const j=Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]]=[arr[j],arr[i]];
   }
   return arr;
 }
@@ -203,7 +206,7 @@ function buildQuizRandom(){
   CURRENT_ITEMS = makeItemList();
   shuffleInPlace(CURRENT_ITEMS);
   renderQuizFromItems();
-  applySavedAnswers(); // 既存保存を復元
+  applySavedAnswers();
 }
 
 /* ========= 入出力・保存（qidベース） ========= */
@@ -215,17 +218,10 @@ function readAnswers(){
   });
   return out;
 }
-function isCompleteByQid(map){ return Object.values(map).every(v => v !== null); }
 function saveToLocal(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(readAnswers())); }catch(e){} }
-function loadFromLocalRaw(){
-  try{
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : null;
-  }catch(e){ return null; }
-}
+function loadFromLocalRaw(){ try{ const raw=localStorage.getItem(STORAGE_KEY); return raw?JSON.parse(raw):null;}catch(e){return null;} }
 function applySavedAnswers(){
-  const saved = loadFromLocalRaw();
-  if(!saved) return;
+  const saved = loadFromLocalRaw(); if(!saved) return;
   CURRENT_ITEMS.forEach(it=>{
     const v = saved[it.qid];
     if(v==null) return;
@@ -237,24 +233,21 @@ quizEl.addEventListener("change", saveToLocal);
 
 /* ========= スコア計算（qid→カテゴリへ逆集計） ========= */
 function computeScoresFromQidMap(qMap){
-  const bucket = {};
-  CATEGORIES.forEach(c=> bucket[c.key] = []);
+  const bucket = {}; CATEGORIES.forEach(c=> bucket[c.key] = []);
   Object.entries(qMap).forEach(([qid, v])=>{
     if(v==null) return;
     const catKey = qid.split("_")[0];
     if(bucket[catKey]) bucket[catKey].push(v);
   });
-  // 足りない場合はnullで埋める（未回答扱い）
   CATEGORIES.forEach(c=>{
     while(bucket[c.key].length < QUESTIONS[c.key].length) bucket[c.key].push(null);
   });
   const complete = Object.values(bucket).every(arr => arr.every(v => v !== null));
   if(!complete) return { complete:false, scores:null };
-
   const scores = {};
   CATEGORIES.forEach(cat=>{
     const arr = bucket[cat.key];
-    const avg = arr.reduce((a,b)=>a+b,0) / arr.length; // 1..5
+    const avg = arr.reduce((a,b)=>a+b,0) / arr.length;
     const norm = Math.round(((avg - 1)/4)*100);
     scores[cat.key] = { avg, norm };
   });
@@ -292,22 +285,16 @@ function drawChart(scores){
       responsive: true,
       maintainAspectRatio: true,
       scales: {
-        r: {
-          min:0, max:100, ticks:{stepSize:20},
-          angleLines:{color:"#e2e8f0"}, grid:{color:"#e2e8f0"},
-          pointLabels:{font:{size:12}}
-        }
+        r: { min:0, max:100, ticks:{stepSize:20}, angleLines:{color:"#e2e8f0"}, grid:{color:"#e2e8f0"}, pointLabels:{font:{size:12}} }
       },
-      plugins: { legend:{display:false},
-        tooltip:{ callbacks:{ label:(ctx)=> `${ctx.formattedValue}` } }
-      }
+      plugins: { legend:{display:false}, tooltip:{ callbacks:{ label:(ctx)=> `${ctx.formattedValue}` } } }
     }
   });
   document.getElementById("exportPngBtn").disabled = false;
 }
 
 /* ========= 親和性・タイプ判定 ========= */
-const AFF = { // 親和性 0-3
+const AFF = {
   pride:{greed:3, wrath:2, envy:2, lust:0, gluttony:0, sloth:0},
   greed:{pride:3, envy:2, wrath:1, lust:0, gluttony:0, sloth:0},
   envy:{greed:2, wrath:3, pride:2, lust:0, gluttony:0, sloth:0},
@@ -319,7 +306,7 @@ const AFF = { // 親和性 0-3
 function entropyFrom(values){
   const sum = values.reduce((a,b)=>a+b,0) || 1;
   const p = values.map(v => Math.max(v,0)/sum);
-  return -p.reduce((h,pi)=> h + (pi>0 ? pi * Math.log(pi) : 0), 0); // 0..log7
+  return -p.reduce((h,pi)=> h + (pi>0 ? pi * Math.log(pi) : 0), 0);
 }
 function affinity(a,b){ return (AFF[a] && AFF[a][b]) || (AFF[b] && AFF[b][a]) || 0; }
 
@@ -336,13 +323,9 @@ function classify(scores){
   confidence = Math.max(0, Math.min(1, confidence));
   const confPct = Math.round(confidence * 100);
 
-  const SOLO_GAP = 8;
-  const TRI_GAP  = 10;
-  const PAIR_AFF = 2;
-  const HIGH_ENT = 1.8;
+  const SOLO_GAP = 8, TRI_GAP = 10, PAIR_AFF = 2, HIGH_ENT = 1.8;
 
   let type = "", detail = "", typeKey = "";
-
   if (margin >= SOLO_GAP) {
     type = `${t1.name}型`; typeKey = type;
     detail = `最上位が明確（差${margin}）。${t1.name}の傾向が優勢。`;
@@ -360,49 +343,195 @@ function classify(scores){
     detail = `上位2因子が接戦（差${margin}）かつ親和性が高い（${affinity(t1.key,t2.key)}）。`;
   } else if (tri_margin < TRI_GAP) {
     const set = new Set([t1.key,t2.key,t3.key]);
-    if (["pride","greed","envy"].every(k=>set.has(k))) {
-      type = "比較/ステータス志向型";
-    } else if (set.has("wrath") && set.has("envy")) {
-      type = "闘争/反応型";
-    } else if (["lust","gluttony","sloth"].some(k=>set.has(k))) {
-      type = "快楽/自己制御課題型";
-    } else {
-      type = "混成クラスタ型";
-    }
-    typeKey = type;
-    detail = "上位3つが近接しているためクラスタで判定。";
+    if (["pride","greed","envy"].every(k=>set.has(k))) type = "比較/ステータス志向型";
+    else if (set.has("wrath") && set.has("envy"))       type = "闘争/反応型";
+    else if (["lust","gluttony","sloth"].some(k=>set.has(k))) type = "快楽/自己制御課題型";
+    else type = "混成クラスタ型";
+    typeKey = type; detail = "上位3つが近接しているためクラスタで判定。";
   } else if (H > HIGH_ENT) {
-    type = "バランス/状況依存型"; typeKey = type;
-    detail = "全体が比較的均一で、状況により顔が変わるタイプ。";
+    type = "バランス/状況依存型"; typeKey = type; detail = "全体が比較的均一で、状況により顔が変わるタイプ。";
   } else {
     type = `${t1.name}優勢・${t2.name}準優勢（混合）`; typeKey = "混合（汎用）";
     detail = `上位が接戦（差${margin}）だが親和性は限定的（${affinity(t1.key,t2.key)}）。`;
   }
-
-  return { type, typeKey, confidence: confPct, detail, top:[t1,t2,t3], all:arr, margin, tri_margin, H, Hmax };
+  return { type, typeKey, confidence: confPct, detail, top:[t1,t2,t3], all:arr };
 }
 
-/* ========= タイプ辞書（説明/動物/注意/相性） ========= */
+/* ========= タイプ辞書（説明/動物/注意/相性/職業） ========= */
 const TYPE_INFO = {
-  "傲慢型":{desc:"自信家でカリスマ性があり、周囲を導く力を持つリーダー気質。",animal:"🦁 ライオン",advice:"他人の意見を軽視し孤立しやすい。意識的に傾聴と謝意を。",good:"強欲型・怠惰型（実務推進/ペース調整）",bad:"嫉妬型（価値観衝突が起きやすい）"},
-  "強欲型":{desc:"現実的で成果志向。物質・地位・成功への意欲が強い。",animal:"🦅 鷹",advice:"利益優先で関係が痩せがち。感謝・分配・寄付で循環を作る。",good:"傲慢型・嫉妬型（方向付けと推進）",bad:"怠惰型（ペース不一致）"},
-  "嫉妬型":{desc:"感受性が高く、他者の長所に敏感。競争心を成長に転化できる。",animal:"🐈 猫",advice:"比較で自己価値を失いやすい。マイ指標を設計し可視化を。",good:"強欲型・憤怒型（目標と推進力の補完）",bad:"傲慢型（承認の奪い合い）"},
-  "憤怒型":{desc:"正義感が強く、不正や理不尽を許さない闘士。",animal:"🐯 トラ",advice:"短期的爆発で関係を損なう。距離・深呼吸・書き出しで冷却。",good:"嫉妬型・怠惰型（監査と緩衝）",bad:"傲慢型（正当性を巡る対立）"},
-  "色欲型":{desc:"情熱的で感受性豊か。人間味ある魅力で場を活性化。",animal:"🔥 フェニックス",advice:"衝動で後悔しやすい。24時間ルール等の抑制スイッチを。",good:"暴食型・怠惰型（快と休息の設計）",bad:"傲慢型（境界線の侵食）"},
-  "暴食型":{desc:"感覚快楽に長け、空気を和ませるムードメーカー。",animal:"🐼 パンダ",advice:"節制が課題。睡眠・食事・運動のルーチン固定を最優先。",good:"色欲型・怠惰型（情緒と休息の相乗）",bad:"強欲型（スピード/成果圧）"},
-  "怠惰型":{desc:"穏やかでマイペース。無理をしないバランス感覚あり。",animal:"🦥 ナマケモノ",advice:"先延ばし対策に5分着手・チェックリスト・締切共有を。",good:"暴食型・傲慢型（回復と舵取り）",bad:"強欲型（速度要求がストレス）"},
-  "支配/名誉追求型":{desc:"成果と地位への志向が強く、組織を牽引する推進力。",animal:"🦅🦁 鷹×ライオン",advice:"功績独占に見えない配慮を。成果の共有と称賛の分散を。",good:"嫉妬型・怠惰型（緊張と緩和のバランス）",bad:"憤怒型（正義×名誉の衝突）"},
-  "怨恨/対抗型":{desc:"理不尽への感度が高く、不公平を是正する戦闘力。",animal:"🐯🐈 トラ×猫",advice:"慢性的な対立構造に注意。ルール設計と第三者調停を活用。",good:"怠惰型・暴食型（過熱の冷却）",bad:"傲慢型（敵対構図が固定化）"},
-  "快楽ドライブ型":{desc:"情熱と感覚が原動力。創造性・人間味でチームを温める。",animal:"🔥🐼 フェニックス×パンダ",advice:"衝動制御と翌朝点検を習慣化。境界線と同意を明確に。",good:"怠惰型（休息設計）・嫉妬型（客観視）",bad:"傲慢型（価値観の押し付け）"},
-  "自己制御ゆるみ型":{desc:"快・休息を重視し回復を作れるが、節度が課題。",animal:"🐼🦥 パンダ×ナマケモノ",advice:"環境で制御（買い置き制限・可視化）。朝の固定ルーチン。",good:"傲慢型・強欲型（外部ドライブ）",bad:"憤怒型（規律圧と反発）"},
-  "攻撃的自己正当化型":{desc:"強い自負と迅速な意思決定。危機対応力が高い。",animal:"🦁🐯 ライオン×トラ",advice:"異論排除に注意。悪魔の代弁者役を制度として置く。",good:"怠惰型（緩衝）・嫉妬型（俯瞰）",bad:"憤怒型（衝突の増幅）"},
-  "比較起点の獲得志向型":{desc:"他者比較を原動力に成果へ向かう実務派。",animal:"🐈🦅 猫×鷹",advice:"指標を内在化し、勝ち筋を“自分のゲーム”に再定義。",good:"傲慢型（方向付け）・怠惰型（ペース調整）",bad:"暴食型（リズム不一致）"},
-  "比較/ステータス志向型":{desc:"地位・評価・資源配分に敏感。戦略設計が得意。",animal:"🦁🦅🐈",advice:"功利性が過ぎると離反。透明性と分配設計を。",good:"怠惰型・暴食型（人心の緩和）",bad:"憤怒型（規範衝突）"},
-  "闘争/反応型":{desc:"不正検知と是正力が強い“監査エンジン”。",animal:"🐯🐈",advice:"短期の勝ち負けより長期改善へ。冷却プロトコル必須。",good:"怠惰型（冷却）・傲慢型（意思決定）",bad:"強欲型（数字偏重摩擦）"},
-  "快楽/自己制御課題型":{desc:"創造性と親しみやすさ。チームの雰囲気を温める資質。",animal:"🔥🐼🦥",advice:"睡眠と血糖の安定が第一。デジタル制限と朝の散歩。",good:"嫉妬型（俯瞰）・傲慢型（舵取り）",bad:"強欲型（速度/成果圧）"},
-  "混成クラスタ型":{desc:"複数の傾向が同程度。場面ごとの役割スイッチが鍵。",animal:"🧩",advice:"場面別“役割プリセット”を作る（推進/調停/創造）。",good:"状況適合の相手全般",bad:"固定思考の強い相手"},
-  "バランス/状況依存型":{desc:"全体が均一で適応的。黒子としての調整力が高い。",animal:"⚖️",advice:"意思決定の遅延に注意。期限と基準を先に置く。",good:"明確なドライバー（傲慢/強欲など）",bad:"過剰な衝動/怒り"},
-  "混合（汎用）":{desc:"上位2因子が拮抗。状況で顔が切り替わるハイブリッド。",animal:"🔀",advice:"場面ごとに“主軸/副軸”を宣言。齟齬は事前共有で回避。",good:"補完関係の相手（上位因子の逆を持つ人）",bad:"同質で競合する相手"}
+  "傲慢型":{
+    desc:"自信家でカリスマ性があり、周囲を導く力を持つリーダー気質。",
+    animal:"🦁 ライオン",
+    advice:"他人の意見を軽視し孤立しやすい。意識的に傾聴と謝意を。",
+    good:"強欲型・怠惰型（実務推進/ペース調整）",
+    bad:"嫉妬型（価値観衝突が起きやすい）",
+    jobsGood:"経営・プロダクトマネジメント、営業リーダー、広報/PR、起業",
+    jobsBad:"裁量が極端に少ない単純作業、権限が曖昧な役割"
+  },
+  "強欲型":{
+    desc:"現実的で成果志向。物質・地位・成功への意欲が強い。",
+    animal:"🦅 鷹",
+    advice:"利益優先で関係が痩せがち。感謝・分配・寄付で循環を作る。",
+    good:"傲慢型・嫉妬型（方向付けと推進）",
+    bad:"怠惰型（ペース不一致）",
+    jobsGood:"営業/BD、コンサル、投資/VC、事業開発、KPI運用職",
+    jobsBad:"超長期で成果が見えにくい基礎業務、変化が少ないルーチン"
+  },
+  "嫉妬型":{
+    desc:"感受性が高く、他者の長所に敏感。競争心を成長に転化できる。",
+    animal:"🐈 猫",
+    advice:"比較で自己価値を失いやすい。マイ指標を設計し可視化を。",
+    good:"強欲型・憤怒型（目標と推進力の補完）",
+    bad:"傲慢型（承認の奪い合い）",
+    jobsGood:"企画/マーケ/プロダクト分析、クリエイティブ職、リサーチ",
+    jobsBad:"評価基準が不透明な環境、孤立しやすいワンオペ"
+  },
+  "憤怒型":{
+    desc:"正義感が強く、不正や理不尽を許さない闘士。",
+    animal:"🐯 トラ",
+    advice:"短期的爆発で関係を損なう。距離・深呼吸・書き出しで冷却。",
+    good:"嫉妬型・怠惰型（監査と緩衝）",
+    bad:"傲慢型（正当性を巡る対立）",
+    jobsGood:"品質保証/QA、法務/コンプライアンス、CSエスカレーション、監査",
+    jobsBad:"ルールが曖昧で場当たりな現場、常時感情が煽られる環境"
+  },
+  "色欲型":{
+    desc:"情熱的で感受性豊か。人間味ある魅力で場を活性化。",
+    animal:"🔥 フェニックス",
+    advice:"衝動で後悔しやすい。24時間ルール等の抑制スイッチを。",
+    good:"暴食型・怠惰型（快と休息の設計）",
+    bad:"傲慢型（価値観の押し付け）",
+    jobsGood:"クリエイティブ（デザイン/映像/音楽）、接客/ホスピタリティ、広報/イベント",
+    jobsBad:"厳密な統制と反復が中心の職種、自由度が極端に低い環境"
+  },
+  "暴食型":{
+    desc:"感覚快楽に長け、空気を和ませるムードメーカー。",
+    animal:"🐼 パンダ",
+    advice:"節制が課題。睡眠・食事・運動のルーチン固定を最優先。",
+    good:"色欲型・怠惰型（情緒と休息の相乗）",
+    bad:"強欲型（スピード/成果圧）",
+    jobsGood:"接客/コミュニティ運営、フード/ホスピタリティ、人事/福利厚生",
+    jobsBad:"不規則長時間で節制が難しい環境、極端なマルチタスク"
+  },
+  "怠惰型":{
+    desc:"穏やかでマイペース。無理をしないバランス感覚あり。",
+    animal:"🦥 ナマケモノ",
+    advice:"先延ばし対策に5分着手・チェックリスト・締切共有を。",
+    good:"暴食型・傲慢型（回復と舵取り）",
+    bad:"強欲型（速度要求がストレス）",
+    jobsGood:"バックオフィス、オペレーション最適化、ドキュメント整備、QA",
+    jobsBad:"超高速変化・常時火消しの現場、締切が連続する職種"
+  },
+
+  /* 複合・クラスタ・汎用 */
+  "支配/名誉追求型":{
+    desc:"成果と地位への志向が強く、組織を牽引する推進力。",
+    animal:"🦅🦁 鷹×ライオン",
+    advice:"功績独占に見えない配慮を。成果の共有と称賛の分散を。",
+    good:"嫉妬型・怠惰型（緊張と緩和のバランス）",
+    bad:"憤怒型（正義×名誉の衝突）",
+    jobsGood:"事業責任者、営業統括、PM/プロダクト責任、コンサル",
+    jobsBad:"低裁量で停滞しやすい環境、意思決定が遅い組織"
+  },
+  "怨恨/対抗型":{
+    desc:"理不尽への感度が高く、不公平を是正する戦闘力。",
+    animal:"🐯🐈 トラ×猫",
+    advice:"慢性的な対立構造に注意。ルール設計と第三者調停を活用。",
+    good:"怠惰型・暴食型（過熱の冷却）",
+    bad:"傲慢型（敵対構図が固定化）",
+    jobsGood:"法務/コンプラ、監査、労務、品質保証、NPOアドボカシー",
+    jobsBad:"規範が緩くルール無視が常態の環境"
+  },
+  "快楽ドライブ型":{
+    desc:"情熱と感覚が原動力。創造性・人間味でチームを温める。",
+    animal:"🔥🐼 フェニックス×パンダ",
+    advice:"衝動制御と翌朝点検を習慣化。境界線と同意を明確に。",
+    good:"怠惰型（休息設計）・嫉妬型（客観視）",
+    bad:"傲慢型（価値観の押し付け）",
+    jobsGood:"クリエイティブ/イベント/コミュニティ、ブランド/PR、接客",
+    jobsBad:"強制的な厳格ルール下の反復作業、創造余地が無い業務"
+  },
+  "自己制御ゆるみ型":{
+    desc:"快・休息を重視し回復を作れるが、節度が課題。",
+    animal:"🐼🦥 パンダ×ナマケモノ",
+    advice:"環境で制御（買い置き制限・可視化）。朝の固定ルーチン。",
+    good:"傲慢型・強欲型（外部ドライブ）",
+    bad:"憤怒型（規律圧と反発）",
+    jobsGood:"人事/総務、コミュニティ運営、サポート/ホスピタリティ",
+    jobsBad:"過度に不規則・拘束時間が長い環境、厳格な節制が必須の職種"
+  },
+  "攻撃的自己正当化型":{
+    desc:"強い自負と迅速な意思決定。危機対応力が高い。",
+    animal:"🦁🐯 ライオン×トラ",
+    advice:"異論排除に注意。悪魔の代弁者役を制度として置く。",
+    good:"怠惰型（緩衝）・嫉妬型（俯瞰）",
+    bad:"憤怒型（衝突の増幅）",
+    jobsGood:"危機対応/IR、セールスリーダー、プロダクト責任、PMO",
+    jobsBad:"合意形成に長時間を要する環境、厳密なボトムアップ文化"
+  },
+  "比較起点の獲得志向型":{
+    desc:"他者比較を原動力に成果へ向かう実務派。",
+    animal:"🐈🦅 猫×鷹",
+    advice:"指標を内在化し、勝ち筋を“自分のゲーム”に再定義。",
+    good:"傲慢型（方向付け）・怠惰型（ペース調整）",
+    bad:"暴食型（リズム不一致）",
+    jobsGood:"マーケ/グロース、データ分析、営業/BD、プロダクト運営",
+    jobsBad:"成果基準が曖昧で評価が見えにくい職種"
+  },
+  "比較/ステータス志向型":{
+    desc:"地位・評価・資源配分に敏感。戦略設計が得意。",
+    animal:"🦁🦅🐈",
+    advice:"功利性が過ぎると離反。透明性と分配設計を。",
+    good:"怠惰型・暴食型（人心の緩和）",
+    bad:"憤怒型（規範衝突）",
+    jobsGood:"事業企画、組織設計、アロケーション/調整、PM/PMM",
+    jobsBad:"価値観がバラバラで調整不能な環境"
+  },
+  "闘争/反応型":{
+    desc:"不正検知と是正力が強い“監査エンジン”。",
+    animal:"🐯🐈",
+    advice:"短期の勝ち負けより長期改善へ。冷却プロトコル必須。",
+    good:"怠惰型（冷却）・傲慢型（意思決定）",
+    bad:"強欲型（数字偏重摩擦）",
+    jobsGood:"法務/監査/品質、CS改善、セキュリティ/IR",
+    jobsBad:"規範軽視の現場、衝動をあおる競争環境"
+  },
+  "快楽/自己制御課題型":{
+    desc:"創造性と親しみやすさ。チームの雰囲気を温める資質。",
+    animal:"🔥🐼🦥",
+    advice:"睡眠と血糖の安定が第一。デジタル制限と朝の散歩。",
+    good:"嫉妬型（俯瞰）・傲慢型（舵取り）",
+    bad:"強欲型（速度/成果圧）",
+    jobsGood:"クリエイティブ、コミュニティ、接客/イベント、採用/広報",
+    jobsBad:"厳格な反復・自由度極小の職種"
+  },
+  "混成クラスタ型":{
+    desc:"複数の傾向が同程度。場面ごとの役割スイッチが鍵。",
+    animal:"🧩",
+    advice:"場面別“役割プリセット”を作る（推進/調停/創造）。",
+    good:"状況適合の相手全般",
+    bad:"固定思考の強い相手",
+    jobsGood:"プロジェクト運営、PMO、調整/ファシリテーション",
+    jobsBad:"役割固定でスイッチング余地がない環境"
+  },
+  "バランス/状況依存型":{
+    desc:"全体が均一で適応的。黒子としての調整力が高い。",
+    animal:"⚖️",
+    advice:"意思決定の遅延に注意。期限と基準を先に置く。",
+    good:"明確なドライバー（傲慢/強欲など）",
+    bad:"過剰な衝動/怒り",
+    jobsGood:"コーディネーション、バックオフィス、HR/広報、CS運用",
+    jobsBad:"常時即断即決の現場、極端なリスクテイク職"
+  },
+  "混合（汎用）":{
+    desc:"上位2因子が拮抗。状況で顔が切り替わるハイブリッド。",
+    animal:"🔀",
+    advice:"場面ごとに“主軸/副軸”を宣言。齟齬は事前共有で回避。",
+    good:"補完関係の相手（上位因子の逆を持つ人）",
+    bad:"同質で競合する相手",
+    jobsGood:"兼務/越境型の役割、横断PM、ゼネラリストポジション",
+    jobsBad:"狭い専門に固定され変化が少ない職種"
+  }
 };
 
 /* ========= 相性＆レポート描画 ========= */
@@ -427,6 +556,11 @@ function renderInsight(scores){
     <p><b>1. あなたはこんな人です：</b>${info.desc || "分析中…"}</p>
     <p><b>2. 動物に例えると：</b>${info.animal || "—"}</p>
     <p><b>3. 注意すべき点：</b>${info.advice || "—"}</p>
+    <div class="jobs">
+      <b>4. 向いている職業（例）：</b>${info.jobsGood || "—"}
+      <b>　　向いていないかもしれない職業（例）：</b>${info.jobsBad || "—"}<br>
+      <span class="muted">※あくまで傾向ベースの一般例です。<strong>あなたの努力次第！</strong>で十分に適応可能です。</span>
+    </div>
     <p class="muted">上位：${topTxt} ／ 下位：${lowTxt}</p>
   `;
 
@@ -460,7 +594,7 @@ document.getElementById("jsonFile").addEventListener("change", (e)=>{
   const reader = new FileReader();
   reader.onload = ()=>{
     try{
-      const data = JSON.parse(reader.result); // {qid:value}
+      const data = JSON.parse(reader.result);
       quizEl.querySelectorAll('input[type="radio"]:checked').forEach(el=> el.checked=false);
       Object.entries(data).forEach(([qid, v])=>{
         const el = document.getElementById(`${qid}_${v}`);
@@ -477,9 +611,7 @@ document.getElementById("calcBtn").addEventListener("click", ()=>{
   const qMap = readAnswers();
   const { complete, scores } = computeScoresFromQidMap(qMap);
   if(!complete){ alert("未回答があります。全ての質問に回答してください。"); return; }
-  renderKPIs(scores);
-  drawChart(scores);
-  renderInsight(scores);
+  renderKPIs(scores); drawChart(scores); renderInsight(scores);
 });
 document.getElementById("resetBtn").addEventListener("click", ()=>{
   if(!confirm("全回答をリセットしますか？")) return;
@@ -492,12 +624,11 @@ document.getElementById("resetBtn").addEventListener("click", ()=>{
   document.getElementById("confVal").textContent = "0%";
   if(radarChart){ radarChart.destroy(); radarChart = null; }
   document.getElementById("exportPngBtn").disabled = true;
-  buildQuizRandom(); // 並び順も初期化
+  buildQuizRandom();
 });
 document.getElementById("shuffleBtn").addEventListener("click", ()=>{
   const saved = loadFromLocalRaw() || {};
   buildQuizRandom();
-  // 念のため直前の保存分も再反映
   CURRENT_ITEMS.forEach(it=>{
     const v = saved[it.qid];
     if(v==null) return;
@@ -508,17 +639,13 @@ document.getElementById("shuffleBtn").addEventListener("click", ()=>{
 
 /* ========= 初期表示 ========= */
 (function init(){
-  // ランダム質問を構築
   buildQuizRandom();
-
-  // Chart.js読み込み確認＆プレースホルダー描画
   if (typeof Chart === "undefined") {
     alert("Chart.jsの読み込みに失敗しました。ネットワークや拡張機能を確認してください。");
     return;
   }
   const empty = {}; CATEGORIES.forEach(c => empty[c.key] = { avg: 1, norm: 0 });
-  renderKPIs(empty);
-  drawChart(empty);
+  renderKPIs(empty); drawChart(empty);
   document.getElementById("insight").textContent = "全21問に回答して「採点」を押すとタイプ診断が表示されます。";
 })();
 </script>
