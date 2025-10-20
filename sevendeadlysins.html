@@ -7,8 +7,8 @@
 <meta name="description" content="質問に答えると七つの大罪（傲慢・強欲・嫉妬・憤怒・色欲・暴食・怠惰）をレーダーチャートで可視化する自己診断ツール。" />
 <link rel="preconnect" href="https://cdn.jsdelivr.net" />
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
-<!-- Chart.js v4 -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" integrity="sha256-7O1d1dY8D5tYy0Z0GKVr3o01UQk6cL6Qx3wV8bA7yCw=" crossorigin="anonymous"></script>
+<!-- Chart.js v4（SRIなしで確実に読み込む） -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" crossorigin="anonymous"></script>
 <style>
   :root{
     --bg:#f7f8fb; --fg:#0f172a; --muted:#64748b; --accent:#2563eb; --card:#ffffff; --border:#e5e7eb;
@@ -408,6 +408,20 @@ document.getElementById("resetBtn").addEventListener("click", ()=>{
   if(radarChart){ radarChart.destroy(); radarChart = null; }
   document.getElementById("exportPngBtn").disabled = true;
 });
+
+// 初期表示用のダミースコア（全て0）
+(function initEmptyRadar(){
+  // Chart.jsが無事ロードできているか確認
+  if (typeof Chart === "undefined") {
+    alert("Chart.jsの読み込みに失敗しました。ネットワークまたは拡張機能を確認してください。");
+    return;
+  }
+  const empty = {};
+  CATEGORIES.forEach(c => empty[c.key] = { avg: 1, norm: 0 }); // 0点表示
+  renderKPIs(empty);
+  drawChart(empty);
+  document.getElementById("insight").textContent = "質問に回答して「採点」を押すと結果が更新されます。";
+})();
 </script>
 </body>
 </html>
