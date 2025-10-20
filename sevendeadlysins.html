@@ -422,6 +422,118 @@ document.getElementById("resetBtn").addEventListener("click", ()=>{
   drawChart(empty);
   document.getElementById("insight").textContent = "質問に回答して「採点」を押すと結果が更新されます。";
 })();
+
+// ===== タイプ診断エンジン =====
+const AFF = { // 親和性 0-3
+  pride:     {greed:3, wrath:2, envy:2, lust:0, gluttony:0, sloth:0},
+  greed:     {pride:3, envy:2, wrath:1, lust:0, gluttony:0, sloth:0},
+  envy:      {greed:2, wrath:3, pride:2, lust:0, gluttony:0, sloth:0},
+  wrath:     {envy:3, pride:2, greed:1, lust:0, gluttony:0, sloth:0},
+  lust:      {gluttony:3, sloth:1, pride:0, greed:0, envy:0, wrath:0},
+  gluttony:  {lust:3, sloth:2, pride:0, greed:0, envy:0, wrath:0},
+  sloth:     {gluttony:2, lust:1, pride:0, greed:0, envy:0, wrath:0},
+};
+const KEY2NAME = Object.fromEntries(CATEGORIES.map(c=>[c.key, c.name]));
+
+function entropyFrom(values){ // 0-100 -> 0..log7
+  const sum = values.reduce((a,b)=>a+b,0) || 1;
+  const p = values.map(v => Math.max(v,0)/sum);
+  return -p.reduce((h,pi)=> h + (pi>0 ? pi * Math.log(pi) : 0), 0);
+}
+function affinity(a,b){ return (AFF[a] && AFF[a][b]) || (AFF[b] && AFF[b][a]) || 0; }
+
+function classify(scores){
+  // scores: {key: {avg, norm}}
+  const arr = CATEGORIES.map(c => ({key:c.key, name:c.name, v:scores[c.key].norm}));
+  arr.sort((x,y)=> y.v - x.v);
+  const [t1,t2,t3] = arr;
+  const margin = t1.v - t2.v;
+  const tri_margin = t1.v - (t3 ? t3.v : 0);
+  const H = entropyFrom(arr.map(x=>x.v));
+  const Hmax = Math.log(arr.length);
+
+  // 自信度
+  let confidence = (margin/20) * (1 - (H/Hmax));
+  confidence = Math.max(0, Math.min(1, confidence));
+
+  // しきい値
+  const SOLO_GAP = 8;
+  const TRI_GAP  = 10;
+  const PAIR_AFF = 2;
+  const HIGH_ENT = 1.8;
+
+  // 判定
+  let type = "";
+  let detail = "";
+
+  if (margin >= SOLO_GAP) {
+    type = `${t1.name}型`;
+    detail = `最上位が明確（差${margin}）。${t1.name}の傾向が優勢。`;
+  } else if (affinity(t1.key, t2.key) >= PAIR_AFF) {
+    // 二極複合（親和性高）
+    const pair = `${t1.name}×${t2.name}`;
+    const map = {
+      "強欲×傲慢":"支配/名誉追求型",
+      "傲慢×強欲":"支配/名誉追求型",
+      "嫉妬×憤怒":"怨恨/対抗型",
+      "憤怒×嫉妬":"怨恨/対抗型",
+      "色欲×暴食":"快楽ドライブ型",
+      "暴食×色欲":"快楽ドライブ型",
+      "暴食×怠惰":"自己制御ゆるみ型",
+      "怠惰×暴食":"自己制御ゆるみ型",
+      "傲慢×憤怒":"攻撃的自己正当化型",
+      "憤怒×傲慢":"攻撃的自己正当化型",
+      "嫉妬×強欲":"比較起点の獲得志向型",
+      "強欲×嫉妬":"比較起点の獲得志向型",
+    };
+    type = map[pair] || `${pair}（複合）`;
+    detail = `上位2因子が接戦（差${margin}）かつ高親和（${affinity(t1.key,t2.key)}）。`;
+  } else if (tri_margin < TRI_GAP) {
+    // クラスタ型（三つ巴）
+    const set = new Set([t1.key,t2.key,t3.key]);
+    if (["pride","greed","envy"].every(k=>set.has(k))) {
+      type = "比較/ステータス志向型";
+      detail = "Pride・Greed・Envyの三つ巴。";
+    } else if (set.has("wrath") && set.has("envy")) {
+      type = "闘争/反応型";
+      detail = "Wrath・Envyを含む接戦。";
+    } else if (["lust","gluttony","sloth"].some(k=>set.has(k))) {
+      type = "快楽/自己制御課題型";
+      detail = "Lust/Gluttony/Slothが近接。";
+    } else {
+      type = "混成クラスタ型";
+      detail = "上位3つが近接。";
+    }
+  } else if (H > HIGH_ENT) {
+    type = "バランス/状況依存型";
+    detail = "全体が均一で状況によって表れが変化。";
+  } else {
+    // デフォルト：二極だが親和性低
+    type = `${t1.name}優勢・${t2.name}準優勢（混合）`;
+    detail = `上位接戦（差${margin}）だが親和性は低（${affinity(t1.key,t2.key)}）。`;
+  }
+
+  // 推奨：上位強み/課題・下位活用
+  const lows = arr.slice(-2).map(x=>`${x.name}（${x.v}）`).join("・");
+  const ups  = arr.slice(0,2).map(x=>`${x.name}（${x.v}）`).join("・");
+  const confPct = Math.round(confidence * 100);
+
+  return {
+    type, confidence: confPct,
+    summary: `タイプ：${type}（自信度 ${confPct}%）／上位：${ups}／下位：${lows}。${detail}`,
+    top: arr.slice(0,3), all: arr
+  };
+}
+
+// 既存 renderInsight を上書き
+function renderInsight(scores){
+  const cls = classify(scores);
+  const insight = document.getElementById("insight");
+  insight.innerHTML = `
+    <div><strong>${cls.summary}</strong></div>
+    <div class="muted">※自信度は「上位差」と「全体のばらけ具合（エントロピー）」から推定。</div>
+  `;
+}
 </script>
 </body>
 </html>
